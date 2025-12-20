@@ -1,3 +1,4 @@
+#main_window
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QStackedWidget
@@ -49,3 +50,17 @@ class MainWindow(QMainWindow):
         btn_orders.clicked.connect(lambda: self.pages.setCurrentIndex(0))
         btn_menu.clicked.connect(lambda: self.pages.setCurrentIndex(1))
         btn_reports.clicked.connect(lambda: self.pages.setCurrentIndex(2))
+    # بعد از ساخت view ها
+        self.menu_view.product_selected.connect(
+        self.on_product_selected
+        )   
+
+    def on_product_selected(self, product_id: int):
+        product = self.menu_view.menu_service.get_product_by_id(product_id)
+
+        self.order_view.order_service.add_item(
+            name=product.name,
+            price=product.price,
+            quantity=1
+        )
+        self.order_view.refresh_ui()
