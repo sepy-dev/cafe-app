@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal
 
 from application.menu_service import MenuService
-
+#kd
 
 class MenuView(QWidget):
     product_selected = Signal(int)  # product_id
