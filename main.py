@@ -1,9 +1,9 @@
 import sys
 from PySide6.QtWidgets import QApplication
 from ui.main_window import MainWindow
-from pathlib import Path
+import os
 
-sys.path.append(str(Path(__file__).parent))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 app = QApplication(sys.argv)
 window = MainWindow()
 window.show()

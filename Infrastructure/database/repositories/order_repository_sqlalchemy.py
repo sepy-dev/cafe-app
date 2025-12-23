@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from domain.entities.order import Order
 from domain.entities.order_item import OrderItem
-from domain.repositories.order_repository import OrderRepository
+from .order_repository import OrderRepository
 from domain.entities.enums import OrderStatus
 
 from infrastructure.database.models.order_model import OrderModel
@@ -55,5 +55,11 @@ class OrderRepositorySQLAlchemy(OrderRepository):
                 price=i.unit_price,
                 quantity=i.quantity
             )
-
+    
         return order
+    def add(self, order_item: OrderItem) -> None:
+        self.session.add(order_item)
+        self.session.commit()
+
+    def list(self):
+        return self.session.query(OrderItem).all()

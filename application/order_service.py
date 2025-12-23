@@ -3,6 +3,8 @@ from infrastructure.database.session import SessionLocal
 from infrastructure.database.repositories.order_repository_sqlalchemy import (
     OrderRepositorySQLAlchemy
 )
+from domain.entities.order_item import OrderItem
+
 
 class OrderService:
     def __init__(self):
@@ -11,8 +13,8 @@ class OrderService:
         self.repo = OrderRepositorySQLAlchemy(self.session)
 
     def add_item(self, name: str, price: int, quantity: int = 1):
-        self.order.add_item(name, price, quantity)
-
+        item = OrderItem(name, price, quantity)
+        self.order.add_item(item)
     def remove_item(self, name: str):
         self.order.remove_item(name)
 
