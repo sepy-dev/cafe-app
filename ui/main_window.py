@@ -372,7 +372,7 @@ class POSMainWindow(QMainWindow):
         controls_layout.addWidget(settings_btn)
 
         header_layout.addLayout(controls_layout)
-        products_layout.addWidget(header_widget)
+        products_layout.addWidget(self.header_widget)
 
         # Search bar
         search_layout = QHBoxLayout()
