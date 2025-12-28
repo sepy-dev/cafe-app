@@ -1,6 +1,6 @@
 import sys
 from PySide6.QtWidgets import QApplication
-from ui.main_window import MainWindow
+from ui.main_window import POSMainWindow
 import os
 
 # اضافه کردن مسیر پروژه
@@ -11,6 +11,6 @@ from infrastructure.database.session import init_db
 init_db()
 
 app = QApplication(sys.argv)
-window = MainWindow()
+window = POSMainWindow()
 window.show()
 sys.exit(app.exec())

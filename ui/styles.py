@@ -1,103 +1,39 @@
-# ui/styles.py - Modern UI Styles and Themes
-from PySide6.QtGui import QFont, QColor
-from PySide6.QtCore import Qt
+# ui/styles.py - Clean and Simple POS UI Styles
+from PySide6.QtGui import QFont
 
 
-class ModernTheme:
-    """Modern UI theme for the cafe application"""
+class POSTheme:
+    """Clean POS-style theme for cafe application"""
 
-    # Colors
-    PRIMARY_COLOR = "#1976D2"      # Blue
-    PRIMARY_LIGHT = "#42A5F5"      # Light Blue
-    PRIMARY_DARK = "#1565C0"       # Dark Blue
-    SECONDARY_COLOR = "#FF6F00"    # Orange
-    ACCENT_COLOR = "#4CAF50"       # Green
-    WARNING_COLOR = "#FF9800"      # Orange warning
-    ERROR_COLOR = "#F44336"        # Red
-    SUCCESS_COLOR = "#4CAF50"      # Green
+    # Main colors - Clean and professional
+    PRIMARY = "#2563EB"          # Modern blue
+    PRIMARY_LIGHT = "#60A5FA"    # Light blue
+    SECONDARY = "#10B981"        # Green
+    ACCENT = "#F59E0B"          # Amber
 
-    # Background colors
-    BG_PRIMARY = "#FAFAFA"         # Light gray background
-    BG_SECONDARY = "#FFFFFF"       # White
-    BG_CARD = "#FFFFFF"           # Card background
-    BG_HOVER = "#F5F5F5"          # Hover background
+    # Backgrounds
+    BG_MAIN = "#FFFFFF"         # Pure white
+    BG_SECONDARY = "#F8FAFC"    # Very light gray
+    BG_CARD = "#FFFFFF"         # White cards
+    BG_HOVER = "#F1F5F9"        # Light hover
 
     # Text colors
-    TEXT_PRIMARY = "#212121"      # Dark gray text
-    TEXT_SECONDARY = "#757575"    # Medium gray text
-    TEXT_HINT = "#BDBDBD"         # Light gray hint text
+    TEXT_PRIMARY = "#1E293B"    # Dark slate
+    TEXT_SECONDARY = "#64748B"  # Medium gray
+    TEXT_LIGHT = "#94A3B8"      # Light gray
 
-    # Border colors
-    BORDER_LIGHT = "#E0E0E0"      # Light border
-    BORDER_MEDIUM = "#BDBDBD"     # Medium border
+    # Status colors
+    SUCCESS = "#059669"         # Green
+    WARNING = "#D97706"         # Amber
+    ERROR = "#DC2626"          # Red
 
-    # Shadows
-    SHADOW_LIGHT = "0 2px 4px rgba(0,0,0,0.1)"
-    SHADOW_MEDIUM = "0 4px 8px rgba(0,0,0,0.15)"
-    SHADOW_HEAVY = "0 8px 16px rgba(0,0,0,0.2)"
-
-
-class ThemeManager:
-    """Theme management system"""
-
-    @staticmethod
-    def get_available_themes():
-        """Get list of available themes"""
-        return {
-            "modern_blue": ModernTheme.__dict__,
-            "dark_mode": {
-                "PRIMARY_COLOR": "#BB86FC",
-                "PRIMARY_LIGHT": "#CF9FFF",
-                "PRIMARY_DARK": "#9D46FF",
-                "SECONDARY_COLOR": "#03DAC6",
-                "ACCENT_COLOR": "#CF6679",
-                "WARNING_COLOR": "#FFAB40",
-                "ERROR_COLOR": "#CF6679",
-                "SUCCESS_COLOR": "#03DAC6",
-                "BG_PRIMARY": "#121212",
-                "BG_SECONDARY": "#1E1E1E",
-                "BG_CARD": "#2D2D2D",
-                "BG_HOVER": "#3D3D3D",
-                "TEXT_PRIMARY": "#FFFFFF",
-                "TEXT_SECONDARY": "#B3B3B3",
-                "TEXT_HINT": "#808080",
-                "BORDER_LIGHT": "#404040",
-                "BORDER_MEDIUM": "#606060"
-            },
-            "warm_orange": {
-                "PRIMARY_COLOR": "#FF6F00",
-                "PRIMARY_LIGHT": "#FF9E40",
-                "PRIMARY_DARK": "#E65100",
-                "SECONDARY_COLOR": "#4CAF50",
-                "ACCENT_COLOR": "#2196F3",
-                "WARNING_COLOR": "#FF9800",
-                "ERROR_COLOR": "#F44336",
-                "SUCCESS_COLOR": "#4CAF50",
-                "BG_PRIMARY": "#FFF8E1",
-                "BG_SECONDARY": "#FFFFFF",
-                "BG_CARD": "#FFFFFF",
-                "BG_HOVER": "#FFF3C4",
-                "TEXT_PRIMARY": "#3E2723",
-                "TEXT_SECONDARY": "#6D4C41",
-                "TEXT_HINT": "#A1887F",
-                "BORDER_LIGHT": "#FFCC02",
-                "BORDER_MEDIUM": "#FFB300"
-            }
-        }
-
-    @staticmethod
-    def apply_theme(theme_name: str):
-        """Apply a specific theme"""
-        themes = ThemeManager.get_available_themes()
-        if theme_name in themes:
-            theme = themes[theme_name]
-            # Update ModernTheme class attributes
-            for key, value in theme.items():
-                setattr(ModernTheme, key, value)
+    # Borders
+    BORDER_LIGHT = "#E2E8F0"    # Light border
+    BORDER_MEDIUM = "#CBD5E1"   # Medium border
 
 
-class ModernStyles:
-    """Modern QSS styles for the application"""
+class POSStyles:
+    """Clean and simple POS-style QSS"""
 
     @staticmethod
     def get_main_style():
@@ -105,228 +41,159 @@ class ModernStyles:
         return f"""
         /* Global Styles */
         QWidget {{
-            font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
-            font-size: 11px;
-            color: {ModernTheme.TEXT_PRIMARY};
-            background-color: {ModernTheme.BG_PRIMARY};
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            font-size: 12px;
+            color: {POSTheme.TEXT_PRIMARY};
+            background-color: {POSTheme.BG_MAIN};
         }}
 
-        /* Main Window */
         QMainWindow {{
-            background-color: {ModernTheme.BG_PRIMARY};
+            background-color: {POSTheme.BG_SECONDARY};
         }}
 
-        /* Buttons */
-        QPushButton {{
-            background-color: {ModernTheme.PRIMARY_COLOR};
+        /* Product Buttons - Large and Touch-Friendly */
+        QPushButton[class="product-btn"] {{
+            background-color: {POSTheme.BG_CARD};
+            border: 2px solid {POSTheme.BORDER_LIGHT};
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: bold;
+            color: {POSTheme.TEXT_PRIMARY};
+            min-height: 80px;
+            text-align: center;
+        }}
+
+        QPushButton[class="product-btn"]:hover {{
+            background-color: {POSTheme.BG_HOVER};
+            border-color: {POSTheme.PRIMARY};
+        }}
+
+        QPushButton[class="product-btn"]:pressed {{
+            background-color: {POSTheme.PRIMARY_LIGHT};
+            color: white;
+        }}
+
+        /* Category Tabs */
+        QTabBar::tab {{
+            background-color: {POSTheme.BG_SECONDARY};
+            color: {POSTheme.TEXT_SECONDARY};
+            border: none;
+            padding: 12px 20px;
+            margin-right: 4px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }}
+
+        QTabBar::tab:selected {{
+            background-color: {POSTheme.PRIMARY};
+            color: white;
+            font-weight: bold;
+        }}
+
+        QTabBar::tab:hover {{
+            background-color: {POSTheme.PRIMARY_LIGHT};
+            color: {POSTheme.BG_MAIN};
+        }}
+
+        /* Cart/Order Section */
+        QWidget[class="cart-section"] {{
+            background-color: {POSTheme.BG_CARD};
+            border: 2px solid {POSTheme.BORDER_LIGHT};
+            border-radius: 12px;
+        }}
+
+        /* Order Items */
+        QWidget[class="order-item"] {{
+            background-color: {POSTheme.BG_MAIN};
+            border: 1px solid {POSTheme.BORDER_LIGHT};
+            border-radius: 8px;
+            padding: 12px;
+            margin: 4px;
+        }}
+
+        /* Price Labels */
+        QLabel[class="price"] {{
+            color: {POSTheme.ACCENT};
+            font-size: 16px;
+            font-weight: bold;
+        }}
+
+        QLabel[class="total-price"] {{
+            color: {POSTheme.SECONDARY};
+            font-size: 18px;
+            font-weight: bold;
+        }}
+
+        /* Action Buttons */
+        QPushButton[class="action-btn"] {{
+            background-color: {POSTheme.SECONDARY};
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            min-height: 16px;
+        }}
+
+        QPushButton[class="action-btn"]:hover {{
+            background-color: #059669;
+        }}
+
+        /* Header Section */
+        QWidget[class="header"] {{
+            background-color: {POSTheme.PRIMARY};
+            color: white;
+            padding: 16px;
+            border-radius: 0px;
+        }}
+
+        QLabel[class="header-title"] {{
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }}
+
+        /* Quantity Controls */
+        QSpinBox {{
+            border: 2px solid {POSTheme.BORDER_LIGHT};
+            border-radius: 6px;
+            padding: 4px 8px;
+            background-color: white;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 60px;
+        }}
+
+        /* Remove Buttons */
+        QPushButton[class="remove-btn"] {{
+            background-color: {POSTheme.ERROR};
             color: white;
             border: none;
             border-radius: 6px;
-            padding: 10px 16px;
-            font-weight: 500;
-            font-size: 11px;
-            min-height: 14px;
-        }}
-
-        QPushButton:hover {{
-            background-color: {ModernTheme.PRIMARY_LIGHT};
-        }}
-
-        QPushButton:pressed {{
-            background-color: {ModernTheme.PRIMARY_DARK};
-        }}
-
-        QPushButton:disabled {{
-            background-color: {ModernTheme.BORDER_LIGHT};
-            color: {ModernTheme.TEXT_HINT};
-        }}
-
-        /* Sidebar Buttons */
-        QPushButton[class="sidebar-btn"] {{
-            background-color: transparent;
-            color: {ModernTheme.TEXT_SECONDARY};
-            text-align: left;
-            padding: 12px 16px;
-            margin: 2px 8px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 500;
-        }}
-
-        QPushButton[class="sidebar-btn"]:hover {{
-            background-color: {ModernTheme.BG_HOVER};
-            color: {ModernTheme.TEXT_PRIMARY};
-        }}
-
-        QPushButton[class="sidebar-btn"]:checked {{
-            background-color: {ModernTheme.PRIMARY_COLOR};
-            color: white;
-        }}
-
-        /* Success Button */
-        QPushButton[class="success-btn"] {{
-            background-color: {ModernTheme.SUCCESS_COLOR};
-        }}
-
-        QPushButton[class="success-btn"]:hover {{
-            background-color: #45A049;
-        }}
-
-        /* Warning Button */
-        QPushButton[class="warning-btn"] {{
-            background-color: {ModernTheme.WARNING_COLOR};
-        }}
-
-        QPushButton[class="warning-btn"]:hover {{
-            background-color: #FB8C00;
-        }}
-
-        /* Danger Button */
-        QPushButton[class="danger-btn"] {{
-            background-color: {ModernTheme.ERROR_COLOR};
-        }}
-
-        QPushButton[class="danger-btn"]:hover {{
-            background-color: #D32F2F;
-        }}
-
-        /* Group Boxes */
-        QGroupBox {{
-            font-weight: bold;
-            font-size: 13px;
-            color: {ModernTheme.TEXT_PRIMARY};
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 8px;
-            margin-top: 8px;
-            padding-top: 8px;
-            background-color: {ModernTheme.BG_CARD};
-        }}
-
-        QGroupBox::title {{
-            subcontrol-origin: margin;
-            left: 12px;
-            padding: 0 8px 0 8px;
-            color: {ModernTheme.PRIMARY_COLOR};
-            font-weight: bold;
-        }}
-
-        /* Labels */
-        QLabel {{
-            color: {ModernTheme.TEXT_PRIMARY};
-        }}
-
-        QLabel[class="title"] {{
-            font-size: 18px;
-            font-weight: bold;
-            color: {ModernTheme.PRIMARY_COLOR};
-        }}
-
-        QLabel[class="subtitle"] {{
-            font-size: 14px;
-            color: {ModernTheme.TEXT_SECONDARY};
-        }}
-
-        QLabel[class="price"] {{
-            font-size: 16px;
-            font-weight: bold;
-            color: {ModernTheme.SECONDARY_COLOR};
-        }}
-
-        QLabel[class="total"] {{
-            font-size: 20px;
-            font-weight: bold;
-            color: {ModernTheme.SUCCESS_COLOR};
-        }}
-
-        /* Line Edits */
-        QLineEdit {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 6px;
-            padding: 8px 12px;
-            background-color: white;
+            padding: 6px 12px;
             font-size: 12px;
         }}
 
-        QLineEdit:focus {{
-            border-color: {ModernTheme.PRIMARY_COLOR};
-        }}
-
-        QLineEdit:placeholder {{
-            color: {ModernTheme.TEXT_HINT};
+        QPushButton[class="remove-btn"]:hover {{
+            background-color: #B91C1C;
         }}
 
         /* Combo Boxes */
         QComboBox {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 6px;
-            padding: 6px 12px;
+            border: 2px solid {POSTheme.BORDER_LIGHT};
+            border-radius: 8px;
+            padding: 8px 12px;
             background-color: white;
-            min-width: 100px;
-        }}
-
-        QComboBox:hover {{
-            border-color: {ModernTheme.PRIMARY_LIGHT};
+            min-width: 120px;
+            font-size: 12px;
         }}
 
         QComboBox::drop-down {{
             border: none;
             width: 20px;
-        }}
-
-        QComboBox::down-arrow {{
-            image: none;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 4px solid {ModernTheme.TEXT_SECONDARY};
-            margin-right: 8px;
-        }}
-
-        /* Tables */
-        QTableWidget {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 8px;
-            background-color: white;
-            gridline-color: {ModernTheme.BORDER_LIGHT};
-        }}
-
-        QTableWidget::item {{
-            padding: 8px;
-            border-bottom: 1px solid {ModernTheme.BORDER_LIGHT};
-        }}
-
-        QTableWidget::item:selected {{
-            background-color: {ModernTheme.PRIMARY_LIGHT};
-            color: white;
-        }}
-
-        QHeaderView::section {{
-            background-color: {ModernTheme.BG_HOVER};
-            color: {ModernTheme.TEXT_PRIMARY};
-            padding: 8px;
-            border: none;
-            border-bottom: 2px solid {ModernTheme.BORDER_LIGHT};
-            font-weight: bold;
-        }}
-
-        /* List Widgets */
-        QListWidget {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 8px;
-            background-color: white;
-        }}
-
-        QListWidget::item {{
-            padding: 8px;
-            border-bottom: 1px solid {ModernTheme.BORDER_LIGHT};
-        }}
-
-        QListWidget::item:selected {{
-            background-color: {ModernTheme.PRIMARY_LIGHT};
-            color: white;
-        }}
-
-        QListWidget::item:hover {{
-            background-color: {ModernTheme.BG_HOVER};
         }}
 
         /* Scroll Areas */
@@ -335,146 +202,14 @@ class ModernStyles:
             background-color: transparent;
         }}
 
-        /* Tabs */
-        QTabWidget::pane {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 8px;
-            background-color: white;
-        }}
-
-        QTabBar::tab {{
-            background-color: {ModernTheme.BG_HOVER};
-            color: {ModernTheme.TEXT_SECONDARY};
-            border: none;
-            padding: 10px 16px;
-            margin-right: 2px;
-            border-radius: 6px 6px 0 0;
-        }}
-
-        QTabBar::tab:selected {{
-            background-color: white;
-            color: {ModernTheme.PRIMARY_COLOR};
-            font-weight: bold;
-        }}
-
-        QTabBar::tab:hover {{
-            background-color: {ModernTheme.PRIMARY_LIGHT};
-            color: white;
-        }}
-
-        /* Spin Boxes */
-        QSpinBox {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 6px;
-            padding: 4px 8px;
-            background-color: white;
-        }}
-
-        QSpinBox::up-button, QSpinBox::down-button {{
-            border: none;
-            background-color: {ModernTheme.BORDER_LIGHT};
-            width: 16px;
-        }}
-
-        QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
-            background-color: {ModernTheme.PRIMARY_LIGHT};
-        }}
-
-        /* Form Layout */
-        QFormLayout {{
+        /* Grid Layouts */
+        QGridLayout {{
             spacing: 12px;
         }}
 
-        /* Progress Bars */
-        QProgressBar {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 4px;
-            text-align: center;
-            background-color: white;
-        }}
-
-        QProgressBar::chunk {{
-            background-color: {ModernTheme.PRIMARY_COLOR};
-            border-radius: 2px;
-        }}
-
-        /* Text Edits */
-        QTextEdit {{
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 8px;
-            background-color: white;
-            padding: 8px;
-        }}
-
-        /* Menu Cards */
-        QWidget[class="product-card"] {{
-            background-color: {ModernTheme.BG_CARD};
-            border: 2px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 12px;
-            padding: 16px;
-        }}
-
-        QWidget[class="product-card"]:hover {{
-            border-color: {ModernTheme.PRIMARY_LIGHT};
-            background-color: {ModernTheme.BG_HOVER};
-        }}
-
-        /* Order Items */
-        QWidget[class="order-item"] {{
-            background-color: {ModernTheme.BG_CARD};
-            border: 1px solid {ModernTheme.BORDER_LIGHT};
-            border-radius: 8px;
-            padding: 12px;
-            margin: 4px 0;
-        }}
-
-        /* Status Indicators */
-        QLabel[class="status-open"] {{
-            color: {ModernTheme.WARNING_COLOR};
-            font-weight: bold;
-        }}
-
-        QLabel[class="status-closed"] {{
-            color: {ModernTheme.SUCCESS_COLOR};
-            font-weight: bold;
-        }}
-
-        /* Animations - Qt compatible */
-        QPushButton {{
-            /* Removed unsupported transitions */
-        }}
-
-        QWidget[class="product-card"] {{
-            /* Removed unsupported transitions */
-        }}
-
-        QListWidget::item {{
-            /* Removed unsupported transitions */
-        }}
-
-        /* Modern Shadows - Qt compatible alternatives */
-        QWidget[class="product-card"] {{
-            border: 2px solid #E0E0E0;
-            background-color: white;
-        }}
-
-        QWidget[class="product-card"]:hover {{
-            border-color: {ModernTheme.PRIMARY_LIGHT};
-            background-color: {ModernTheme.BG_HOVER};
-        }}
-
-        /* Smooth Scrolling */
-        QScrollArea {{
-            background-color: transparent;
-        }}
-
-        QScrollArea QWidget {{
-            background-color: transparent;
-        }}
-
-        /* Focus Styles - Qt compatible */
-        QPushButton:focus, QLineEdit:focus, QComboBox:focus {{
-            border: 2px solid {ModernTheme.PRIMARY_COLOR};
+        /* Focus Styles */
+        QPushButton:focus, QComboBox:focus {{
+            border-color: {POSTheme.PRIMARY};
         }}
         """
 
@@ -485,7 +220,7 @@ class FontManager:
     @staticmethod
     def get_main_font():
         """Get main application font"""
-        font = QFont("Segoe UI", 11)
+        font = QFont("Segoe UI", 12)
         font.setStyleHint(QFont.System)
         return font
 
