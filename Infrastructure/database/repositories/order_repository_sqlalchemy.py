@@ -15,8 +15,9 @@ class OrderRepositorySQLAlchemy(OrderRepository):
 
     def save(self, order: Order) -> int:
         order_model = OrderModel(
+            table_number=order.table_number,
             status=order.status.value,
-            discount=order.discount
+            discount=order.discount.amount
         )
         self.session.add(order_model)
         self.session.flush()  # گرفتن ID
@@ -25,7 +26,7 @@ class OrderRepositorySQLAlchemy(OrderRepository):
             item_model = OrderItemModel(
                 order_id=order_model.id,
                 product_name=item.name,
-                unit_price=item.unit_price,
+                unit_price=item.unit_price.amount,
                 quantity=item.quantity
             )
             self.session.add(item_model)
@@ -34,13 +35,15 @@ class OrderRepositorySQLAlchemy(OrderRepository):
         return order_model.id
 
     def get_by_id(self, order_id: int) -> Order:
+        from domain.value_objects.money import Money
+
         order_model = self.session.get(OrderModel, order_id)
 
         if not order_model:
             raise Exception("Order not found")
 
-        order = Order()
-        order.discount = order_model.discount
+        order = Order(table_number=order_model.table_number)
+        order.discount = Money(order_model.discount)
         order.status = OrderStatus(order_model.status)
 
         items = (
@@ -55,7 +58,7 @@ class OrderRepositorySQLAlchemy(OrderRepository):
                 price=i.unit_price,
                 quantity=i.quantity
             )
-    
+
         return order
     def add(self, order_item: OrderItem) -> None:
         self.session.add(order_item)

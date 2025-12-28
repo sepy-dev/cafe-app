@@ -8,6 +8,7 @@ class OrderModel(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True)
+    table_number = Column(Integer, nullable=True)  # شماره میز (NULL برای بیرون بر)
     status = Column(String, nullable=False)
     discount = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
