@@ -55,13 +55,12 @@ class POSStyles:
         QPushButton[class="product-btn"] {{
             background-color: {POSTheme.BG_CARD};
             border: 2px solid {POSTheme.BORDER_LIGHT};
-            border-radius: 12px;
-            padding: 16px;
-            font-size: 14px;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
             font-weight: bold;
             color: {POSTheme.TEXT_PRIMARY};
-            min-height: 80px;
-            text-align: center;
+            min-height: 70px;
         }}
 
         QPushButton[class="product-btn"]:hover {{
@@ -79,10 +78,9 @@ class POSStyles:
             background-color: {POSTheme.BG_SECONDARY};
             color: {POSTheme.TEXT_SECONDARY};
             border: none;
-            padding: 12px 20px;
-            margin-right: 4px;
-            border-radius: 8px;
-            font-size: 13px;
+            padding: 10px 16px;
+            margin-right: 2px;
+            font-size: 12px;
             font-weight: 500;
         }}
 
