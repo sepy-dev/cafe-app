@@ -20,6 +20,18 @@ class POSMainWindow(QMainWindow):
         self.order_service = OrderService()
         self.menu_service = MenuService()
 
+        # Initialize theme
+        self.current_theme = {
+            "name": "modern_blue",
+            "PRIMARY": "#2563EB",
+            "SECONDARY": "#10B981",
+            "ACCENT": "#F59E0B",
+            "BG_MAIN": "#FFFFFF",
+            "BG_SECONDARY": "#F8FAFC",
+            "TEXT_PRIMARY": "#1E293B",
+            "TEXT_SECONDARY": "#64748B"
+        }
+
         self.setWindowTitle("🍽️ سیستم ثبت سفارش کافه")
         self.resize(1400, 900)
         self.setMinimumSize(1200, 700)
@@ -171,10 +183,10 @@ class POSMainWindow(QMainWindow):
         products_layout = QVBoxLayout(products_widget)
 
         # Enhanced Header with multiple controls
-        header_widget = QWidget()
-        header_widget.setProperty("class", "header")
-        header_widget.setFixedHeight(80)  # Fixed height for better appearance
-        header_layout = QHBoxLayout(header_widget)
+        self.header_widget = QWidget()
+        self.header_widget.setProperty("class", "header")
+        self.header_widget.setFixedHeight(80)  # Fixed height for better appearance
+        header_layout = QHBoxLayout(self.header_widget)
         header_layout.setContentsMargins(20, 10, 20, 10)
 
         # Left side - Title and branding
@@ -285,6 +297,59 @@ class POSMainWindow(QMainWindow):
         """)
         table_select_layout.addWidget(self.table_combo)
         controls_layout.addLayout(table_select_layout)
+
+        # Customer selection
+        customer_layout = QVBoxLayout()
+        customer_layout.setSpacing(2)
+
+        customer_label = QLabel("مشتری")
+        customer_label.setStyleSheet("font-size: 10px; color: rgba(255,255,255,0.7); font-weight: bold;")
+        customer_layout.addWidget(customer_label)
+
+        customer_select_layout = QHBoxLayout()
+        self.customer_combo = QComboBox()
+        self.customer_combo.addItem("👤 انتخاب مشتری", "")
+        self.customer_combo.addItem("احمد رضایی (150 امتیاز)", "ahmad")
+        self.customer_combo.addItem("مریم احمدی (450 امتیاز)", "maryam")
+        self.customer_combo.addItem("علی محمدی (VIP)", "ali")
+        self.customer_combo.currentIndexChanged.connect(self.on_customer_changed)
+        self.customer_combo.setStyleSheet("""
+            QComboBox {
+                background-color: rgba(255,255,255,0.9);
+                color: #1E293B;
+                border: none;
+                border-radius: 6px;
+                padding: 6px;
+                min-width: 140px;
+                font-size: 11px;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+        """)
+        customer_select_layout.addWidget(self.customer_combo)
+
+        add_customer_btn = QPushButton("+")
+        add_customer_btn.setToolTip("افزودن مشتری جدید")
+        add_customer_btn.clicked.connect(self.add_new_customer)
+        add_customer_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255,255,255,0.2);
+                color: white;
+                border: 1px solid rgba(255,255,255,0.3);
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255,255,255,0.3);
+            }
+        """)
+        customer_select_layout.addWidget(add_customer_btn)
+
+        customer_layout.addLayout(customer_select_layout)
+        controls_layout.addLayout(customer_layout)
 
         # Settings button
         settings_btn = QPushButton("⚙️")
@@ -969,6 +1034,42 @@ class POSMainWindow(QMainWindow):
         # Auto hide after 3 seconds
         QTimer.singleShot(3000, notification.hide)
 
+    def update_header_colors(self):
+        """Update header colors based on current theme"""
+        header_bg = self.current_theme["PRIMARY"]
+        text_color = "white"
+
+        # Update header background
+        header_style = f"""
+            QWidget[class="header"] {{
+                background-color: {header_bg};
+                color: {text_color};
+                padding: 16px;
+                border-radius: 0px;
+            }}
+        """
+        self.header_widget.setStyleSheet(header_style)
+
+        # Update table indicator colors
+        if hasattr(self, 'table_indicator'):
+            if self.order_service.get_table_number() is None:
+                indicator_bg = "#FFA500"
+            else:
+                indicator_bg = "#FFD700"
+
+            indicator_style = f"""
+                QLabel {{
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: {self.current_theme['TEXT_PRIMARY']};
+                    background-color: {indicator_bg};
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    border: 2px solid rgba(255,255,255,0.3);
+                }}
+            """
+            self.table_indicator.setStyleSheet(indicator_style)
+
     def create_product_card(self, product):
         """Create an enhanced product card"""
         card = QWidget()
@@ -1100,32 +1201,85 @@ class POSMainWindow(QMainWindow):
         QMessageBox.information(self, "تم تغییر یافت", f"تم به '{self.theme_combo.currentText()}' تغییر یافت!")
 
     def apply_theme(self, theme_name):
-        """Apply a specific theme"""
-        from ui.styles import POSTheme
-
+        """Apply a specific theme with proper updates"""
+        # Update theme constants
         if theme_name == "modern_blue":
-            POSTheme.PRIMARY = "#2563EB"
-            POSTheme.SECONDARY = "#10B981"
-            POSTheme.ACCENT = "#F59E0B"
+            self.current_theme = {
+                "name": "modern_blue",
+                "PRIMARY": "#2563EB",
+                "SECONDARY": "#10B981",
+                "ACCENT": "#F59E0B",
+                "BG_MAIN": "#FFFFFF",
+                "BG_SECONDARY": "#F8FAFC",
+                "TEXT_PRIMARY": "#1E293B",
+                "TEXT_SECONDARY": "#64748B"
+            }
         elif theme_name == "dark":
-            POSTheme.PRIMARY = "#6366F1"
-            POSTheme.SECONDARY = "#8B5CF6"
-            POSTheme.ACCENT = "#F59E0B"
-            POSTheme.BG_MAIN = "#1F2937"
-            POSTheme.BG_SECONDARY = "#111827"
-            POSTheme.TEXT_PRIMARY = "#F9FAFB"
-            POSTheme.TEXT_SECONDARY = "#D1D5DB"
+            self.current_theme = {
+                "name": "dark",
+                "PRIMARY": "#6366F1",
+                "SECONDARY": "#8B5CF6",
+                "ACCENT": "#F59E0B",
+                "BG_MAIN": "#1F2937",
+                "BG_SECONDARY": "#111827",
+                "TEXT_PRIMARY": "#F9FAFB",
+                "TEXT_SECONDARY": "#D1D5DB"
+            }
         elif theme_name == "warm_orange":
-            POSTheme.PRIMARY = "#EA580C"
-            POSTheme.SECONDARY = "#059669"
-            POSTheme.ACCENT = "#DC2626"
-            POSTheme.BG_SECONDARY = "#FFF7ED"
+            self.current_theme = {
+                "name": "warm_orange",
+                "PRIMARY": "#EA580C",
+                "SECONDARY": "#059669",
+                "ACCENT": "#DC2626",
+                "BG_MAIN": "#FFFFFF",
+                "BG_SECONDARY": "#FFF7ED",
+                "TEXT_PRIMARY": "#1E293B",
+                "TEXT_SECONDARY": "#64748B"
+            }
 
-        # Reapply styles
+        # Update global theme
+        POSTheme.PRIMARY = self.current_theme["PRIMARY"]
+        POSTheme.SECONDARY = self.current_theme["SECONDARY"]
+        POSTheme.ACCENT = self.current_theme["ACCENT"]
+        POSTheme.BG_MAIN = self.current_theme["BG_MAIN"]
+        POSTheme.BG_SECONDARY = self.current_theme["BG_SECONDARY"]
+        POSTheme.TEXT_PRIMARY = self.current_theme["TEXT_PRIMARY"]
+        POSTheme.TEXT_SECONDARY = self.current_theme["TEXT_SECONDARY"]
+
+        # Reapply styles to entire application
         self.setStyleSheet(POSStyles.get_main_style())
+
+        # Update header colors
+        self.update_header_colors()
+
+    def on_customer_changed(self):
+        """Handle customer selection change"""
+        customer_data = self.customer_combo.currentData()
+        if customer_data:
+            customer_name = self.customer_combo.currentText().split(" (")[0]
+            self.show_notification("مشتری انتخاب شد", f"خوش آمدید {customer_name}!", "👤")
+            self.current_customer = customer_data
+        else:
+            self.current_customer = None
+
+    def add_new_customer(self):
+        """Add new customer"""
+        from ui.add_customer_dialog import AddCustomerDialog
+        dialog = AddCustomerDialog(self)
+        if dialog.exec():
+            # Refresh customer list
+            self.customer_combo.clear()
+            self.customer_combo.addItem("👤 انتخاب مشتری", "")
+            self.customer_combo.addItem("احمد رضایی (150 امتیاز)", "ahmad")
+            self.customer_combo.addItem("مریم احمدی (450 امتیاز)", "maryam")
+            self.customer_combo.addItem("علی محمدی (VIP)", "ali")
+            # Add the new customer
+            new_customer_name = dialog.name_input.text()
+            self.customer_combo.addItem(f"{new_customer_name} (50 امتیاز)", "new")
+            self.show_notification("مشتری اضافه شد", f"{new_customer_name} به باشگاه مشتریان اضافه شد!", "✅")
 
     def show_settings(self):
         """Show advanced settings dialog"""
-        from ui.printer_settings_dialog import PrinterSettingsDialog
-        dialog = PrinterSettingsDialog(self)
+        from ui.advanced_settings_dialog import AdvancedSettingsDialog
+        dialog = AdvancedSettingsDialog(self)
         dialog.exec()
