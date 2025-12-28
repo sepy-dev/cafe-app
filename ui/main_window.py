@@ -2,7 +2,7 @@
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QPushButton, QLabel, QComboBox, QFrame, QScrollArea, QTabWidget,
-    QListWidget, QSpinBox, QMessageBox
+    QListWidget, QSpinBox, QMessageBox, QLineEdit
 )
 from PySide6.QtCore import Qt, Signal, QTimer
 from datetime import datetime
