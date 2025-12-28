@@ -37,7 +37,23 @@ class OrderView(QWidget):
 
         # لیست آیتم‌های سفارش
         self.order_list = QListWidget()
-        self.order_list.setStyleSheet("font-size: 14px;")
+        self.order_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #E0E0E0;
+                border-radius: 10px;
+                background-color: white;
+                font-size: 12px;
+                padding: 5px;
+            }
+            QListWidget::item {
+                border-bottom: 1px solid #F0F0F0;
+                padding: 5px;
+            }
+            QListWidget::item:selected {
+                background-color: #E3F2FD;
+                color: #1976D2;
+            }
+        """)
         layout.addWidget(self.order_list, 1)
 
         # اطلاعات مالی
@@ -118,6 +134,10 @@ class OrderView(QWidget):
 
         try:
             self.order_service.set_table(table_number)
+            self.refresh_ui()
+            # Update main window table indicator
+            if hasattr(self.parent(), 'update_table_indicator'):
+                self.parent().update_table_indicator()
         except ValueError as e:
             QMessageBox.warning(self, "خطا", str(e))
 

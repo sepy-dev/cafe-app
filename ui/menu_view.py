@@ -102,56 +102,95 @@ class MenuView(QWidget):
 
         self.products_layout.addStretch()
 
-    def create_product_card(self, product) -> QGroupBox:
-        """ایجاد کارت محصول"""
-        card = QGroupBox()
+    def create_product_card(self, product) -> QWidget:
+        """ایجاد کارت محصول مدرن"""
+        card = QWidget()
+        card.setObjectName("product-card")
+        card.setProperty("class", "product-card")
         card.setStyleSheet("""
-            QGroupBox {
+            QWidget[class="product-card"] {
+                background-color: white;
                 border: 2px solid #E0E0E0;
-                border-radius: 8px;
-                background-color: #FAFAFA;
-                margin-top: 5px;
+                border-radius: 15px;
+                padding: 20px;
+                margin: 8px;
             }
-            QGroupBox:hover {
-                border-color: #4CAF50;
-                background-color: #F1F8E9;
+            QWidget[class="product-card"]:hover {
+                border-color: #2196F3;
+                background-color: #F8F9FA;
+                transform: translateY(-3px);
             }
         """)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(10)
 
         # نام محصول
         name_label = QLabel(product.name)
-        name_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #2E7D32;")
+        name_label.setStyleSheet("""
+            QLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: #1976D2;
+                text-align: center;
+                margin-bottom: 5px;
+            }
+        """)
         name_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(name_label)
 
-        # قیمت
-        price_label = QLabel(f"{product.price:,} تومان")
-        price_label.setStyleSheet("font-size: 14px; color: #FF9800; font-weight: bold;")
-        price_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(price_label)
-
         # دسته‌بندی
-        category_label = QLabel(f"دسته: {product.category}")
-        category_label.setStyleSheet("font-size: 12px; color: #666;")
+        category_label = QLabel(f"📂 {product.category}")
+        category_label.setStyleSheet("""
+            QLabel {
+                font-size: 11px;
+                color: #666666;
+                background-color: #F5F5F5;
+                padding: 4px 8px;
+                border-radius: 10px;
+                text-align: center;
+            }
+        """)
         category_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(category_label)
 
+        # قیمت
+        price_label = QLabel(f"💰 {product.price:,} تومان")
+        price_label.setStyleSheet("""
+            QLabel {
+                font-size: 15px;
+                font-weight: bold;
+                color: #FF6F00;
+                text-align: center;
+                margin: 5px 0;
+            }
+        """)
+        price_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(price_label)
+
+        layout.addStretch()
+
         # دکمه افزودن
-        add_btn = QPushButton("➕ افزودن به سفارش")
+        add_btn = QPushButton("🛒 افزودن به سفارش")
         add_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
                 border: none;
-                border-radius: 4px;
-                padding: 8px;
+                border-radius: 8px;
+                padding: 12px 16px;
                 font-weight: bold;
+                font-size: 12px;
+                margin-top: 10px;
             }
             QPushButton:hover {
                 background-color: #45A049;
+                transform: scale(1.02);
+            }
+            QPushButton:pressed {
+                background-color: #3D8B40;
+                transform: scale(0.98);
             }
         """)
         add_btn.clicked.connect(lambda: self.product_selected.emit(product.id))
