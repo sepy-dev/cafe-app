@@ -30,6 +30,7 @@ class OrderView(QWidget):
         self.table_combo = QComboBox()
         self.table_combo.addItems([f"میز {i}" for i in range(1, 21)])  # ۲۰ میز
         self.table_combo.addItem("بیرون بر")  # گزینه بیرون بر
+        self.table_combo.setCurrentIndex(0)  # انتخاب میز ۱ به عنوان پیش‌فرض
         self.table_combo.currentIndexChanged.connect(self.on_table_changed)
 
         table_layout.addRow("میز:", self.table_combo)

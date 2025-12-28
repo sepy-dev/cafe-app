@@ -130,12 +130,10 @@ class ModernStyles:
 
         QPushButton:hover {{
             background-color: {ModernTheme.PRIMARY_LIGHT};
-            transform: translateY(-1px);
         }}
 
         QPushButton:pressed {{
             background-color: {ModernTheme.PRIMARY_DARK};
-            transform: translateY(0px);
         }}
 
         QPushButton:disabled {{
@@ -419,7 +417,6 @@ class ModernStyles:
         QWidget[class="product-card"]:hover {{
             border-color: {ModernTheme.PRIMARY_LIGHT};
             background-color: {ModernTheme.BG_HOVER};
-            transform: translateY(-2px);
         }}
 
         /* Order Items */
@@ -442,26 +439,28 @@ class ModernStyles:
             font-weight: bold;
         }}
 
-        /* Animations */
+        /* Animations - Qt compatible */
         QPushButton {{
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Removed unsupported transitions */
         }}
 
         QWidget[class="product-card"] {{
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Removed unsupported transitions */
         }}
 
         QListWidget::item {{
-            transition: all 0.2s ease;
+            /* Removed unsupported transitions */
         }}
 
-        /* Modern Shadows */
+        /* Modern Shadows - Qt compatible alternatives */
         QWidget[class="product-card"] {{
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 2px solid #E0E0E0;
+            background-color: white;
         }}
 
         QWidget[class="product-card"]:hover {{
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border-color: {ModernTheme.PRIMARY_LIGHT};
+            background-color: {ModernTheme.BG_HOVER};
         }}
 
         /* Smooth Scrolling */
@@ -473,10 +472,9 @@ class ModernStyles:
             background-color: transparent;
         }}
 
-        /* Focus Styles */
+        /* Focus Styles - Qt compatible */
         QPushButton:focus, QLineEdit:focus, QComboBox:focus {{
-            outline: 2px solid {ModernTheme.PRIMARY_COLOR};
-            outline-offset: 2px;
+            border: 2px solid {ModernTheme.PRIMARY_COLOR};
         }}
         """
 

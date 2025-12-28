@@ -107,24 +107,25 @@ class MenuView(QWidget):
         card = QWidget()
         card.setObjectName("product-card")
         card.setProperty("class", "product-card")
+        card.setMinimumSize(150, 140)
+        card.setMaximumSize(180, 170)
+        card.setSizePolicy(QWidget().sizePolicy().Expanding, QWidget().sizePolicy().Preferred)
         card.setStyleSheet("""
             QWidget[class="product-card"] {
                 background-color: white;
                 border: 2px solid #E0E0E0;
-                border-radius: 15px;
-                padding: 20px;
-                margin: 8px;
+                border-radius: 12px;
+                margin: 5px;
             }
             QWidget[class="product-card"]:hover {
                 border-color: #2196F3;
                 background-color: #F8F9FA;
-                transform: translateY(-3px);
             }
         """)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
 
         # نام محصول
         name_label = QLabel(product.name)
@@ -186,11 +187,9 @@ class MenuView(QWidget):
             }
             QPushButton:hover {
                 background-color: #45A049;
-                transform: scale(1.02);
             }
             QPushButton:pressed {
                 background-color: #3D8B40;
-                transform: scale(0.98);
             }
         """)
         add_btn.clicked.connect(lambda: self.product_selected.emit(product.id))

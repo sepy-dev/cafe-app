@@ -19,8 +19,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("🍽️ سیستم مدیریت کافه - مدرن")
-        self.resize(1400, 900)
-        self.setMinimumSize(1200, 700)
+        self.resize(1200, 800)
+        self.setMinimumSize(1000, 600)
 
         # Apply modern styling
         self.setStyleSheet(ModernStyles.get_main_style())
@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         """Setup modern sidebar"""
         sidebar_widget = QWidget()
         sidebar_widget.setObjectName("sidebar")
-        sidebar_widget.setFixedWidth(280)
+        sidebar_widget.setFixedWidth(250)
         sidebar_widget.setStyleSheet("""
             QWidget#sidebar {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,

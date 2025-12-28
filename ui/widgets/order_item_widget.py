@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSpinBox
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSpinBox
 from PySide6.QtCore import Signal
 
 
@@ -125,11 +125,9 @@ class OrderItemWidget(QWidget):
             }
             QPushButton:hover {
                 background-color: #D32F2F;
-                transform: scale(1.05);
             }
             QPushButton:pressed {
                 background-color: #B71C1C;
-                transform: scale(0.95);
             }
         """)
         self.btn_remove.setMaximumWidth(50)
