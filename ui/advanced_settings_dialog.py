@@ -234,6 +234,21 @@ class AdvancedSettingsDialog(QDialog):
 
         layout.addWidget(business_group)
 
+        # Display settings
+        display_group = QGroupBox("تنظیمات نمایش")
+        display_layout = QVBoxLayout(display_group)
+
+        self.dual_mode_enabled = QCheckBox("فعال کردن حالت دوپنل (آشپزخانه)")
+        self.dual_mode_enabled.setChecked(False)
+        self.dual_mode_enabled.setToolTip("برای استفاده با دو مانیتور یا نمایش آشپزخانه")
+        display_layout.addWidget(self.dual_mode_enabled)
+
+        self.auto_kitchen_update = QCheckBox("بروزرسانی خودکار نمایش آشپزخانه")
+        self.auto_kitchen_update.setChecked(True)
+        display_layout.addWidget(self.auto_kitchen_update)
+
+        layout.addWidget(display_group)
+
         # Receipt settings
         receipt_group = QGroupBox("تنظیمات فاکتور")
         receipt_layout = QVBoxLayout(receipt_group)

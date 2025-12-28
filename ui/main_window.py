@@ -2,9 +2,11 @@
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QPushButton, QLabel, QComboBox, QFrame, QScrollArea, QTabWidget,
-    QListWidget, QSpinBox, QMessageBox, QLineEdit
+    QListWidget, QSpinBox, QMessageBox, QLineEdit, QSplitter, QGroupBox
 )
 from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtMultimedia import QSoundEffect
+from PySide6.QtCore import QUrl
 from datetime import datetime
 
 from application.order_service import OrderService
@@ -12,8 +14,256 @@ from application.menu_service import MenuService
 from ui.styles import POSStyles, FontManager, POSTheme
 
 
+class KitchenDisplayWidget(QWidget):
+    """Kitchen display widget for dual monitor setup"""
+
+    def __init__(self, order_service, parent=None):
+        super().__init__(parent)
+        self.order_service = order_service
+        self.current_orders = {}  # table_number -> order_items
+        self.last_order_count = 0
+
+        # Sound effect for new orders
+        self.new_order_sound = None
+
+        self.setWindowTitle("🍳 نمایش آشپزخانه")
+        self.resize(800, 600)
+        self.setStyleSheet(f"""
+            QWidget {{
+                background-color: {POSTheme.BG_SECONDARY};
+                color: {POSTheme.TEXT_PRIMARY};
+                font-size: 14px;
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+
+        # Header
+        header = QLabel("🍳 سفارشات آشپزخانه")
+        header.setStyleSheet(f"""
+            QLabel {{
+                font-size: 24px;
+                font-weight: bold;
+                color: {POSTheme.PRIMARY};
+                padding: 20px;
+                background-color: {POSTheme.PRIMARY};
+                color: white;
+                text-align: center;
+            }}
+        """)
+        layout.addWidget(header)
+
+        # Orders display area
+        self.orders_scroll = QScrollArea()
+        self.orders_scroll.setWidgetResizable(True)
+        self.orders_scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+        """)
+
+        self.orders_container = QWidget()
+        self.orders_layout = QVBoxLayout(self.orders_container)
+        self.orders_layout.setSpacing(15)
+
+        self.orders_scroll.setWidget(self.orders_container)
+        layout.addWidget(self.orders_scroll, 1)
+
+        # Status bar with stats
+        status_widget = QWidget()
+        status_layout = QHBoxLayout(status_widget)
+        status_layout.setContentsMargins(10, 5, 10, 5)
+
+        self.status_label = QLabel("آماده دریافت سفارشات...")
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                color: {POSTheme.TEXT_SECONDARY};
+                font-size: 12px;
+            }}
+        """)
+        status_layout.addWidget(self.status_label)
+
+        status_layout.addStretch()
+
+        # Real-time stats
+        self.stats_label = QLabel("📊 آمار: ۰ سفارش فعال")
+        self.stats_label.setStyleSheet(f"""
+            QLabel {{
+                color: {POSTheme.PRIMARY};
+                font-weight: bold;
+                font-size: 12px;
+            }}
+        """)
+        status_layout.addWidget(self.stats_label)
+
+        status_widget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {POSTheme.BG_MAIN};
+                border-top: 2px solid {POSTheme.BORDER_LIGHT};
+            }}
+        """)
+        layout.addWidget(status_widget)
+
+        # Timer for updates
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_orders)
+        self.update_timer.start(2000)  # Update every 2 seconds
+
+        self.update_orders()
+
+    def update_orders(self):
+        """Update orders display"""
+        # Clear existing orders
+        while self.orders_layout.count():
+            item = self.orders_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Get all active orders (for demo, we'll simulate some orders)
+        # In real implementation, this would come from a shared order queue
+        from datetime import datetime, timedelta
+        import random
+
+        base_time = datetime.now()
+        sample_orders = [
+            {"table": 1, "items": [("قهوه", 2), ("کیک", 1)], "time": (base_time - timedelta(minutes=random.randint(5, 15))).strftime("%H:%M"), "status": "آماده‌سازی"},
+            {"table": 3, "items": [("چای", 1), ("ساندویچ", 1)], "time": (base_time - timedelta(minutes=random.randint(3, 10))).strftime("%H:%M"), "status": "در حال پخت"},
+            {"table": 5, "items": [("لاته", 3)], "time": (base_time - timedelta(minutes=random.randint(1, 5))).strftime("%H:%M"), "status": "آماده‌سازی"},
+        ]
+
+        # Update status and stats
+        active_orders = len(sample_orders)
+        total_items = sum(len(order['items']) for order in sample_orders)
+
+        # Check for new orders and play sound
+        if active_orders > self.last_order_count and self.last_order_count > 0:
+            self.play_new_order_sound()
+
+        self.last_order_count = active_orders
+
+        if sample_orders:
+            self.status_label.setText(f"📋 {active_orders} سفارش فعال")
+            self.stats_label.setText(f"📊 آمار: {active_orders} سفارش، {total_items} آیتم")
+        else:
+            self.status_label.setText("✅ سفارش فعالی وجود ندارد")
+            self.stats_label.setText("📊 آمار: ۰ سفارش، ۰ آیتم")
+
+        for order in sample_orders:
+            order_card = self.create_order_card(order)
+            self.orders_layout.addWidget(order_card)
+
+        self.orders_layout.addStretch()
+
+    def create_order_card(self, order):
+        """Create order card for kitchen display"""
+        # Calculate wait time
+        from datetime import datetime
+        order_time = datetime.strptime(order['time'], "%H:%M")
+        now = datetime.now()
+        wait_minutes = (now - order_time.replace(year=now.year, month=now.month, day=now.day)).seconds // 60
+
+        card = QGroupBox(f"میز {order['table']} - {order['time']} ({wait_minutes} دقیقه)")
+        card.setStyleSheet(f"""
+            QGroupBox {{
+                background-color: {POSTheme.BG_MAIN};
+                border: 3px solid {POSTheme.ACCENT if wait_minutes < 10 else '#EF4444'};
+                border-radius: 8px;
+                padding: 15px;
+                margin: 5px;
+            }}
+            QGroupBox::title {{
+                color: {POSTheme.PRIMARY};
+                font-weight: bold;
+                font-size: 16px;
+                padding: 5px;
+            }}
+        """)
+
+        layout = QVBoxLayout(card)
+
+        # Order items
+        for item_name, quantity in order['items']:
+            item_label = QLabel(f"• {item_name} × {quantity}")
+            item_label.setStyleSheet(f"""
+                QLabel {{
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: {POSTheme.TEXT_PRIMARY};
+                    padding: 3px 0;
+                }}
+            """)
+            layout.addWidget(item_label)
+
+        # Status and wait time
+        status_layout = QHBoxLayout()
+
+        status_label = QLabel(f"وضعیت: {order['status']}")
+        status_label.setStyleSheet(f"""
+            QLabel {{
+                font-size: 14px;
+                color: {POSTheme.SECONDARY};
+                font-weight: bold;
+            }}
+        """)
+        status_layout.addWidget(status_label)
+
+        # Priority indicator
+        if wait_minutes > 15:
+            priority_label = QLabel("🔴 فوری")
+            priority_label.setStyleSheet("color: #EF4444; font-weight: bold;")
+            status_layout.addWidget(priority_label)
+        elif wait_minutes > 10:
+            priority_label = QLabel("🟡 عجله")
+            priority_label.setStyleSheet("color: #F59E0B; font-weight: bold;")
+            status_layout.addWidget(priority_label)
+
+        status_layout.addStretch()
+        layout.addLayout(status_layout)
+
+        # Action buttons
+        buttons_layout = QHBoxLayout()
+
+        ready_btn = QPushButton("✅ آماده")
+        ready_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {POSTheme.SECONDARY};
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 14px;
+            }}
+            QPushButton:hover {{
+                background-color: #059669;
+            }}
+        """)
+        ready_btn.clicked.connect(lambda: self.mark_order_ready(order['table']))
+        buttons_layout.addWidget(ready_btn)
+
+        layout.addLayout(buttons_layout)
+
+        return card
+
+    def mark_order_ready(self, table_number):
+        """Mark order as ready"""
+        QMessageBox.information(self, "سفارش آماده",
+                               f"سفارش میز {table_number} آماده تحویل است!")
+        self.update_orders()
+
+    def play_new_order_sound(self):
+        """Play sound for new orders"""
+        try:
+            # Try to play system bell sound
+            import winsound
+            winsound.Beep(800, 500)  # Frequency 800Hz, duration 500ms
+        except ImportError:
+            # On non-Windows systems, we'll skip sound
+            pass
+
+
 class POSMainWindow(QMainWindow):
-    """Clean POS-style main window for cafe ordering system"""
+    """Clean POS-style main window for cafe ordering system with dual mode support"""
 
     def __init__(self):
         super().__init__()
@@ -31,6 +281,10 @@ class POSMainWindow(QMainWindow):
             "TEXT_PRIMARY": "#1E293B",
             "TEXT_SECONDARY": "#64748B"
         }
+
+        # Dual mode settings
+        self.dual_mode = False
+        self.kitchen_display = None
 
         self.setWindowTitle("🍽️ سیستم ثبت سفارش کافه")
         self.resize(1400, 900)
@@ -350,6 +604,27 @@ class POSMainWindow(QMainWindow):
 
         customer_layout.addLayout(customer_select_layout)
         controls_layout.addLayout(customer_layout)
+
+        # Dual mode button
+        dual_btn = QPushButton("🍳" if not self.dual_mode else "💻")
+        dual_btn.setToolTip("حالت دوپنل (آشپزخانه)")
+        dual_btn.clicked.connect(self.toggle_dual_mode)
+        dual_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255,165,0,0.8);
+                color: white;
+                border: 1px solid rgba(255,165,0,0.5);
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: rgba(255,165,0,0.9);
+                border-color: rgba(255,165,0,0.7);
+            }
+        """)
+        controls_layout.addWidget(dual_btn)
 
         # Settings button
         settings_btn = QPushButton("⚙️")
@@ -859,6 +1134,11 @@ class POSMainWindow(QMainWindow):
                     f"سفارش با شماره {order_id} با موفقیت ثبت و تسویه شد!\n\nمجموع: {total_amount:,} تومان"
                 )
                 self.show_notification("سفارش تسویه شد", f"مبلغ: {total_amount:,} تومان", "💰")
+
+                # Notify kitchen display if in dual mode
+                if self.dual_mode and self.kitchen_display:
+                    self.kitchen_display.update_orders()
+
                 self.refresh_cart()
             except Exception as e:
                 QMessageBox.critical(self, "خطا", f"خطا در ثبت سفارش: {str(e)}")
@@ -919,6 +1199,47 @@ class POSMainWindow(QMainWindow):
             QMessageBox.warning(self, "خطا", f"مبلغ تخفیف نامعتبر: {str(e)}")
         except Exception as e:
             QMessageBox.warning(self, "خطا", f"خطا در اعمال تخفیف: {str(e)}")
+
+    def toggle_dual_mode(self):
+        """Toggle between single and dual monitor mode"""
+        self.dual_mode = not self.dual_mode
+
+        if self.dual_mode:
+            self.create_dual_layout()
+            self.show_notification("حالت دوپنل فعال شد", "نمایش آشپزخانه باز شده است", "🍳")
+        else:
+            self.create_single_layout()
+            if self.kitchen_display:
+                self.kitchen_display.close()
+                self.kitchen_display = None
+            self.show_notification("حالت تک‌پنل فعال شد", "به حالت عادی بازگشتیم", "💻")
+
+    def create_dual_layout(self):
+        """Create dual monitor layout with splitter"""
+        # Close existing kitchen display if any
+        if self.kitchen_display:
+            self.kitchen_display.close()
+
+        # Create new kitchen display
+        self.kitchen_display = KitchenDisplayWidget(self.order_service)
+        self.kitchen_display.show()
+
+        # Move kitchen display to second monitor if available
+        screens = self.screen().availableGeometry()
+        if len(self.screens()) > 1:
+            # Move to second screen
+            second_screen = self.screens()[1].availableGeometry()
+            self.kitchen_display.move(second_screen.x(), second_screen.y())
+            self.kitchen_display.resize(second_screen.width(), second_screen.height())
+        else:
+            # Move to right side of current screen
+            self.kitchen_display.move(self.x() + self.width() + 10, self.y())
+
+        self.resize(1000, 900)  # Make main window smaller for dual mode
+
+    def create_single_layout(self):
+        """Return to single monitor layout"""
+        self.resize(1400, 900)  # Restore original size
 
     def print_current_receipt(self):
         """Print receipt for current order"""
