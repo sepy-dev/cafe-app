@@ -109,7 +109,8 @@ class MenuView(QWidget):
         card.setProperty("class", "product-card")
         card.setMinimumSize(150, 140)
         card.setMaximumSize(180, 170)
-        card.setSizePolicy(QWidget().sizePolicy().Expanding, QWidget().sizePolicy().Preferred)
+        from PySide6.QtWidgets import QSizePolicy
+        card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         card.setStyleSheet("""
             QWidget[class="product-card"] {
                 background-color: white;
