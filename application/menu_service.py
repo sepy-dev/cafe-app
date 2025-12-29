@@ -80,3 +80,27 @@ class MenuService:
         products = self.get_active_products()
         categories = set(product.category for product in products)
         return sorted(list(categories))
+
+    def get_all_products(self) -> List[Product]:
+        """دریافت تمام محصولات (فعال و غیرفعال)"""
+        return self.product_repo.get_all()
+
+    def update_product_price(self, product_id: int, new_price: int) -> None:
+        """به‌روزرسانی قیمت محصول"""
+        if new_price <= 0:
+            raise ValueError("قیمت باید مثبت باشد")
+        product = self.get_product_by_id(product_id)
+        product.price = new_price
+        self.product_repo.update(product)
+
+    def deactivate_product(self, product_id: int) -> None:
+        """غیرفعال کردن محصول"""
+        product = self.get_product_by_id(product_id)
+        product.is_active = False
+        self.product_repo.update(product)
+
+    def activate_product(self, product_id: int) -> None:
+        """فعال کردن محصول"""
+        product = self.get_product_by_id(product_id)
+        product.is_active = True
+        self.product_repo.update(product)

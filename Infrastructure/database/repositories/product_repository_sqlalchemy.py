@@ -33,6 +33,21 @@ class ProductRepositorySQLAlchemy(ProductRepository):
             is_active=product_model.is_active
         )
 
+    def get_all(self) -> List[Product]:
+        """دریافت همه محصولات (فعال و غیرفعال)"""
+        product_models = self.session.query(ProductModel).all()
+
+        return [
+            Product(
+                id=model.id,
+                name=model.name,
+                price=model.price,
+                category=model.category,
+                is_active=model.is_active
+            )
+            for model in product_models
+        ]
+
     def get_all_active(self) -> List[Product]:
         product_models = (
             self.session.query(ProductModel)

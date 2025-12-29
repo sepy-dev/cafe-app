@@ -64,10 +64,12 @@ class AddProductDialog(QDialog):
         buttons_layout = QHBoxLayout()
 
         cancel_btn = QPushButton("❌ انصراف")
+        cancel_btn.setAutoFillBackground(True)  # Prevent white background on drag/resize
         cancel_btn.clicked.connect(self.reject)
         buttons_layout.addWidget(cancel_btn)
 
         add_btn = QPushButton("✅ افزودن محصول")
+        add_btn.setAutoFillBackground(True)  # Prevent white background on drag/resize
         add_btn.clicked.connect(self.add_product)
         add_btn.setStyleSheet("""
             QPushButton {
@@ -75,9 +77,13 @@ class AddProductDialog(QDialog):
                 color: white;
                 padding: 10px 20px;
                 font-weight: bold;
+                border-radius: 6px;
             }
             QPushButton:hover {
                 background-color: #059669;
+            }
+            QPushButton:pressed {
+                background-color: #047857;
             }
         """)
         buttons_layout.addWidget(add_btn)

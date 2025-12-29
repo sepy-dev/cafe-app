@@ -34,6 +34,7 @@ class MenuView(QWidget):
         category_layout.addWidget(self.category_combo)
 
         self.refresh_btn = QPushButton("🔄 بروزرسانی")
+        self.refresh_btn.setAutoFillBackground(True)  # Prevent white background on drag/resize
         self.refresh_btn.clicked.connect(self.load_menu)
         category_layout.addWidget(self.refresh_btn)
 
@@ -107,6 +108,7 @@ class MenuView(QWidget):
         card = QWidget()
         card.setObjectName("product-card")
         card.setProperty("class", "product-card")
+        card.setAttribute(Qt.WA_StyledBackground, True)  # Enable stylesheet for background
         card.setMinimumSize(150, 140)
         card.setMaximumSize(180, 170)
         from PySide6.QtWidgets import QSizePolicy
@@ -175,6 +177,7 @@ class MenuView(QWidget):
 
         # دکمه افزودن
         add_btn = QPushButton("🛒 افزودن به سفارش")
+        add_btn.setAutoFillBackground(True)  # Prevent white background on drag/resize
         add_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4CAF50;
@@ -191,6 +194,9 @@ class MenuView(QWidget):
             }
             QPushButton:pressed {
                 background-color: #3D8B40;
+            }
+            QPushButton:disabled {
+                background-color: #A5D6A7;
             }
         """)
         add_btn.clicked.connect(lambda: self.product_selected.emit(product.id))
