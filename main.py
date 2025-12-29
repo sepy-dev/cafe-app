@@ -7,15 +7,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 
-# راه‌اندازی دیتابیس
-from infrastructure.database.session import init_db
-init_db()
-
-# وارد کردن مدل کاربر برای ایجاد جدول
-from infrastructure.database.models.user_model import UserModel
-from infrastructure.database.base import Base
-from infrastructure.database.session import engine
-Base.metadata.create_all(bind=engine)
+# راه‌اندازی و مقداردهی اولیه سیستم
+from infrastructure.init_service import initialize_application
+initialize_application()
 
 app = QApplication(sys.argv)
 
