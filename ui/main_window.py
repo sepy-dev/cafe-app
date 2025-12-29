@@ -13,6 +13,7 @@ from datetime import datetime
 from application.order_service import OrderService
 from application.menu_service import MenuService
 from ui.styles import ThemeManager, StyleGenerator, FontManager, ThemePresets
+from ui.server_settings_dialog import ServerSettingsDialog
 
 
 class KitchenDisplayWidget(QWidget):
@@ -527,6 +528,29 @@ class POSMainWindow(QMainWindow):
         """)
         table_select_layout.addWidget(self.table_combo)
         controls_layout.addWidget(table_select_widget)
+
+        # Server Settings Button
+        server_settings_btn = QPushButton("🌐")
+        server_settings_btn.setToolTip("تنظیمات سرور وب")
+        server_settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255,255,255,0.2);
+                color: white;
+                border: 1px solid rgba(255,255,255,0.35);
+                border-radius: 12px;
+                padding: 8px 12px;
+                font-size: 16px;
+                min-width: 40px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255,255,255,0.35);
+            }
+            QPushButton:pressed {
+                background-color: rgba(255,255,255,0.15);
+            }
+        """)
+        server_settings_btn.clicked.connect(self.open_server_settings)
+        controls_layout.addWidget(server_settings_btn)
 
         # Customer selector
         customer_widget = QWidget()
@@ -1583,6 +1607,11 @@ class POSMainWindow(QMainWindow):
         """Quick table selection via keyboard shortcuts"""
         if 1 <= table_number <= 20:
             self.table_combo.setCurrentIndex(table_number - 1)
+
+    def open_server_settings(self):
+        """Open server settings dialog"""
+        dialog = ServerSettingsDialog(self)
+        dialog.exec()
 
     def show_notification(self, title, message, icon="ℹ️"):
         """Show a notification toast"""
