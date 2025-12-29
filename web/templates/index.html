@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم مدیریت کافه</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card" style="max-width: 500px;">
+            <div class="login-header">
+                <h1>☕ سیستم مدیریت کافه</h1>
+                <p>سیستم جامع مدیریت سفارشات و فروش</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="margin-bottom: 20px; font-size: 1.1rem;">
+                    به سیستم مدیریت کافه خوش آمدید
+                </p>
+                
+                <a href="/login" class="btn btn-primary btn-lg" style="width: 100%; margin-bottom: 10px;">
+                    ورود به سیستم
+                </a>
+                
+                <a href="/dashboard" class="btn btn-secondary" style="width: 100%;">
+                    ورود مستقیم به داشبورد
+                </a>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: var(--secondary-color); border-radius: 10px;">
+                <h3 style="color: var(--primary-color); margin-bottom: 15px;">ویژگی‌ها</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="margin-bottom: 10px;">✅ مدیریت سفارشات</li>
+                    <li style="margin-bottom: 10px;">✅ ثبت سفارشات جدید</li>
+                    <li style="margin-bottom: 10px;">✅ مدیریت محصولات</li>
+                    <li style="margin-bottom: 10px;">✅ مدیریت کاربران</li>
+                    <li style="margin-bottom: 10px;">✅ گزارشات و آمار</li>
+                    <li style="margin-bottom: 10px;">✅ دسترسی از شبکه محلی</li>
+                </ul>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                <p>نسخه 2.0.0 | ساخته شده با ❤️</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (AuthManager.isAuthenticated()) {
+            window.location.href = '/dashboard';
+        }
+    </script>
+</body>
+</html>

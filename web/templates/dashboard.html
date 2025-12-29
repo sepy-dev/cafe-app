@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد - سیستم مدیریت کافه</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/dashboard" class="navbar-brand">☕ سیستم مدیریت کافه</a>
+            <ul class="navbar-menu">
+                <li><a href="/dashboard" class="active">داشبورد</a></li>
+                <li><a href="/new-order">سفارش جدید</a></li>
+                <li><a href="/orders">مدیریت سفارشات</a></li>
+                <li id="admin-menu-item" style="display: none;"><a href="/admin">مدیریت کاربران</a></li>
+            </ul>
+            <div class="navbar-user">
+                <span class="user-badge" id="user-info">کاربر</span>
+                <a href="#" id="logout-btn" class="btn btn-secondary btn-sm">خروج</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div style="margin: 30px 0;">
+            <h1 style="color: var(--primary-color); margin-bottom: 10px;">📊 داشبورد</h1>
+            <p style="color: var(--text-secondary);">خوش آمدید! آمار و اطلاعات کلی سیستم را در اینجا مشاهده کنید.</p>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="stats-container">
+            <div class="spinner"></div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">🚀 دسترسی سریع</div>
+            <div class="card-body">
+                <div class="d-flex gap-2" style="flex-wrap: wrap;">
+                    <a href="/new-order" class="btn btn-primary">
+                        ➕ ثبت سفارش جدید
+                    </a>
+                    <a href="/orders" class="btn btn-success">
+                        📋 مشاهده سفارشات
+                    </a>
+                    <a href="/orders?status=open" class="btn btn-warning">
+                        ⏳ سفارشات باز
+                    </a>
+                    <a href="/admin" class="btn btn-secondary" id="admin-action-btn" style="display: none;">
+                        👥 مدیریت کاربران
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Orders -->
+        <div class="card">
+            <div class="card-header">📋 آخرین سفارشات</div>
+            <div class="card-body">
+                <div id="recent-orders-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+    <script>
+        // Check authentication
+        if (!AuthManager.isAuthenticated()) {
+            window.location.href = '/login';
+        }
+        
+        // Show admin menu if user is admin
+        const user = AuthManager.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('admin-menu-item').style.display = 'block';
+            document.getElementById('admin-action-btn').style.display = 'inline-block';
+        }
+        
+        // Load dashboard data
+        const dashboard = new DashboardManager();
+        const ordersManager = new OrdersManager();
+        
+        async function loadDashboard() {
+            try {
+                // Load stats
+                const stats = await dashboard.loadStats();
+                dashboard.renderStats(stats);
+                
+                // Load recent orders
+                const orders = await ordersManager.loadOrders();
+                renderRecentOrders(orders.slice(0, 5));
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        function renderRecentOrders(orders) {
+            const container = document.getElementById('recent-orders-container');
+            
+            if (orders.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">هنوز سفارشی ثبت نشده است</p>';
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>شماره سفارش</th>
+                            <th>میز</th>
+                            <th>تعداد آیتم</th>
+                            <th>مبلغ کل</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orders.map(order => `
+                            <tr>
+                                <td>#${order.id}</td>
+                                <td>${order.table_number || '-'}</td>
+                                <td>${order.items.length}</td>
+                                <td>${UI.formatCurrency(order.total)}</td>
+                                <td><span class="badge ${UI.getStatusBadgeClass(order.status)}">${UI.getStatusText(order.status)}</span></td>
+                                <td>${UI.formatDate(order.created_at)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        // Load data on page load
+        loadDashboard();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

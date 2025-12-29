@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت سفارشات - سیستم مدیریت کافه</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="/dashboard" class="navbar-brand">☕ سیستم مدیریت کافه</a>
+            <ul class="navbar-menu">
+                <li><a href="/dashboard">داشبورد</a></li>
+                <li><a href="/new-order">سفارش جدید</a></li>
+                <li><a href="/orders" class="active">مدیریت سفارشات</a></li>
+                <li id="admin-menu-item" style="display: none;"><a href="/admin">مدیریت کاربران</a></li>
+            </ul>
+            <div class="navbar-user">
+                <span class="user-badge" id="user-info">کاربر</span>
+                <a href="#" id="logout-btn" class="btn btn-secondary btn-sm">خروج</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div style="margin: 30px 0;">
+            <h1 style="color: var(--primary-color); margin-bottom: 10px;">📋 مدیریت سفارشات</h1>
+            <p style="color: var(--text-secondary);">مشاهده و مدیریت سفارشات</p>
+        </div>
+        
+        <!-- Filters -->
+        <div class="card">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="status-filter">فیلتر وضعیت:</label>
+                <select id="status-filter" class="form-select">
+                    <option value="">همه سفارشات</option>
+                    <option value="open">باز</option>
+                    <option value="closed">بسته</option>
+                    <option value="cancelled">لغو شده</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Orders Table -->
+        <div class="card">
+            <div class="card-header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📋 لیست سفارشات</span>
+                    <button id="refresh-btn" class="btn btn-primary btn-sm">🔄 بروزرسانی</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="orders-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Details Modal -->
+    <div id="order-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>جزئیات سفارش</h2>
+                <span class="modal-close" onclick="closeOrderModal()">×</span>
+            </div>
+            <div id="order-details-container"></div>
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+    <script>
+        // Check authentication
+        if (!AuthManager.isAuthenticated()) {
+            window.location.href = '/login';
+        }
+        
+        // Show admin menu if user is admin
+        const user = AuthManager.getUser();
+        if (user && user.role === 'admin') {
+            document.getElementById('admin-menu-item').style.display = 'block';
+        }
+        
+        // Orders Manager
+        const ordersManager = new OrdersManager();
+        let currentOrders = [];
+        
+        // Load orders
+        async function loadOrders() {
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            try {
+                currentOrders = await ordersManager.loadOrders(statusFilter || null);
+                renderOrders();
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+        
+        // Render orders
+        function renderOrders() {
+            const container = document.getElementById('orders-container');
+            
+            if (currentOrders.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">سفارشی یافت نشد</p>';
+                return;
+            }
+            
+            const tableHTML = `
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>شماره</th>
+                            <th>میز</th>
+                            <th>تعداد آیتم</th>
+                            <th>مبلغ کل</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${currentOrders.map(order => `
+                            <tr>
+                                <td><strong>#${order.id}</strong></td>
+                                <td>${order.table_number || '-'}</td>
+                                <td>${order.items.length} آیتم</td>
+                                <td style="color: var(--primary-color); font-weight: bold;">${UI.formatCurrency(order.total)}</td>
+                                <td><span class="badge ${UI.getStatusBadgeClass(order.status)}">${UI.getStatusText(order.status)}</span></td>
+                                <td>${UI.formatDate(order.created_at)}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="showOrderDetails(${order.id})">جزئیات</button>
+                                    ${order.status === 'open' ? `
+                                        <button class="btn btn-sm btn-success" onclick="updateStatus(${order.id}, 'closed')">بستن</button>
+                                        <button class="btn btn-sm btn-danger" onclick="updateStatus(${order.id}, 'cancelled')">لغو</button>
+                                    ` : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        // Show order details
+        async function showOrderDetails(orderId) {
+            const order = currentOrders.find(o => o.id === orderId);
+            if (!order) return;
+            
+            const container = document.getElementById('order-details-container');
+            
+            container.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--primary-color);">سفارش #${order.id}</h3>
+                    <p style="color: var(--text-secondary);">
+                        میز: ${order.table_number || 'نامشخص'} | 
+                        تاریخ: ${UI.formatDate(order.created_at)} | 
+                        وضعیت: <span class="badge ${UI.getStatusBadgeClass(order.status)}">${UI.getStatusText(order.status)}</span>
+                    </p>
+                </div>
+                
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>محصول</th>
+                            <th>قیمت واحد</th>
+                            <th>تعداد</th>
+                            <th>جمع</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map(item => `
+                            <tr>
+                                <td>${item.product_name}</td>
+                                <td>${UI.formatCurrency(item.unit_price)}</td>
+                                <td>${item.quantity}</td>
+                                <td>${UI.formatCurrency(item.total)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px; padding: 15px; background: var(--secondary-color); border-radius: 5px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span>جمع جزء:</span>
+                        <strong>${UI.formatCurrency(order.subtotal)}</strong>
+                    </div>
+                    ${order.discount > 0 ? `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--danger-color);">
+                            <span>تخفیف:</span>
+                            <strong>-${UI.formatCurrency(order.discount)}</strong>
+                        </div>
+                    ` : ''}
+                    <div style="display: flex; justify-content: space-between; font-size: 1.2rem; padding-top: 10px; border-top: 2px solid var(--primary-color);">
+                        <span>مبلغ نهایی:</span>
+                        <strong style="color: var(--primary-color);">${UI.formatCurrency(order.total)}</strong>
+                    </div>
+                </div>
+                
+                ${order.status === 'open' ? `
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-success" onclick="updateStatus(${order.id}, 'closed'); closeOrderModal();">بستن سفارش</button>
+                        <button class="btn btn-danger" onclick="updateStatus(${order.id}, 'cancelled'); closeOrderModal();">لغو سفارش</button>
+                    </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('order-modal').classList.add('show');
+        }
+        
+        // Close order modal
+        function closeOrderModal() {
+            document.getElementById('order-modal').classList.remove('show');
+        }
+        
+        // Update order status
+        async function updateStatus(orderId, newStatus) {
+            if (!confirm(`آیا می‌خواهید وضعیت سفارش را تغییر دهید؟`)) {
+                return;
+            }
+            
+            try {
+                await ordersManager.updateOrderStatus(orderId, newStatus);
+                await loadOrders();
+            } catch (error) {
+                console.error('Error updating order status:', error);
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('status-filter').addEventListener('change', loadOrders);
+        document.getElementById('refresh-btn').addEventListener('click', loadOrders);
+        
+        // Close modal on background click
+        document.getElementById('order-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'order-modal') {
+                closeOrderModal();
+            }
+        });
+        
+        // Make functions global
+        window.showOrderDetails = showOrderDetails;
+        window.closeOrderModal = closeOrderModal;
+        window.updateStatus = updateStatus;
+        
+        // Load orders on page load
+        loadOrders();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadOrders, 30000);
+    </script>
+</body>
+</html>
