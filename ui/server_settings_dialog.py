@@ -15,12 +15,6 @@ from PySide6.QtGui import QPixmap, QImage
 from web.server import get_server_runner
 from web.config import get_config_manager
 
-# Try to import win32com for firewall COM API
-try:
-    import win32com.client
-    HAS_WIN32COM = True
-except ImportError:
-    HAS_WIN32COM = False
 
 # QR Code imports
 try:
