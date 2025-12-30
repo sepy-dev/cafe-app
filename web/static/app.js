@@ -54,13 +54,12 @@ class AuthManager {
                     const errorData = await response.json();
                     errorDetail = errorData.detail || errorDetail;
                 } catch (e) {
-                    // If response is not JSON, use status text
                     if (response.status === 401) {
                         errorDetail = 'نام کاربری یا رمز عبور اشتباه است';
                     } else if (response.status === 500) {
                         errorDetail = 'خطای سرور. لطفاً دوباره تلاش کنید.';
                     } else if (response.status === 0 || response.status >= 500) {
-                        errorDetail = 'سرور در دسترس نیست. لطفاً مطمئن شوید سرور در حال اجرا است.';
+                        errorDetail = 'سرور در دسترس نیست.';
                     }
                 }
                 throw new Error(errorDetail);
@@ -69,16 +68,15 @@ class AuthManager {
             const data = await response.json();
             
             if (!data.access_token) {
-                throw new Error('توکن دریافت نشد. لطفاً دوباره تلاش کنید.');
+                throw new Error('توکن دریافت نشد.');
             }
             
             this.setToken(data.access_token);
             this.setUser(data.user);
             return data;
         } catch (error) {
-            // Re-throw with better error message
             if (error.name === 'TypeError' && error.message.includes('fetch')) {
-                throw new Error('خطا در اتصال به سرور. لطفاً مطمئن شوید سرور در حال اجرا است و آدرس صحیح است.');
+                throw new Error('خطا در اتصال به سرور.');
             }
             throw error;
         }
@@ -140,6 +138,13 @@ class API {
     static async post(url, data) {
         return this.request(url, {
             method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+    
+    static async put(url, data) {
+        return this.request(url, {
+            method: 'PUT',
             body: JSON.stringify(data),
         });
     }
@@ -257,7 +262,7 @@ class ProductsManager {
             this.extractCategories();
             return this.products;
         } catch (error) {
-            UI.showError('خطا در بارگذاری محصولات: ' + error.message);
+            console.error('Error loading products:', error);
             throw error;
         }
     }
@@ -293,7 +298,7 @@ class OrdersManager {
             this.orders = await API.get(url);
             return this.orders;
         } catch (error) {
-            UI.showError('خطا در بارگذاری سفارشات: ' + error.message);
+            console.error('Error loading orders:', error);
             throw error;
         }
     }
@@ -301,10 +306,9 @@ class OrdersManager {
     async createOrder(orderData) {
         try {
             const order = await API.post('/api/orders', orderData);
-            UI.showSuccess('سفارش با موفقیت ثبت شد');
             return order;
         } catch (error) {
-            UI.showError('خطا در ثبت سفارش: ' + error.message);
+            console.error('Error creating order:', error);
             throw error;
         }
     }
@@ -312,9 +316,8 @@ class OrdersManager {
     async updateOrderStatus(orderId, status) {
         try {
             await API.patch(`/api/orders/${orderId}/status`, { status });
-            UI.showSuccess('وضعیت سفارش به‌روزرسانی شد');
         } catch (error) {
-            UI.showError('خطا در به‌روزرسانی سفارش: ' + error.message);
+            console.error('Error updating order:', error);
             throw error;
         }
     }
@@ -331,7 +334,7 @@ class UsersManager {
             this.users = await API.get('/api/admin/users');
             return this.users;
         } catch (error) {
-            UI.showError('خطا در بارگذاری کاربران: ' + error.message);
+            console.error('Error loading users:', error);
             throw error;
         }
     }
@@ -339,10 +342,37 @@ class UsersManager {
     async createUser(userData) {
         try {
             const user = await API.post('/api/admin/users', userData);
-            UI.showSuccess('کاربر با موفقیت ایجاد شد');
             return user;
         } catch (error) {
-            UI.showError('خطا در ایجاد کاربر: ' + error.message);
+            console.error('Error creating user:', error);
+            throw error;
+        }
+    }
+    
+    async updateUser(userId, userData) {
+        try {
+            const user = await API.put(`/api/admin/users/${userId}`, userData);
+            return user;
+        } catch (error) {
+            console.error('Error updating user:', error);
+            throw error;
+        }
+    }
+    
+    async activateUser(userId) {
+        try {
+            await API.patch(`/api/admin/users/${userId}/activate`);
+        } catch (error) {
+            console.error('Error activating user:', error);
+            throw error;
+        }
+    }
+    
+    async deactivateUser(userId) {
+        try {
+            await API.patch(`/api/admin/users/${userId}/deactivate`);
+        } catch (error) {
+            console.error('Error deactivating user:', error);
             throw error;
         }
     }
@@ -350,9 +380,8 @@ class UsersManager {
     async toggleUserActive(userId) {
         try {
             await API.patch(`/api/admin/users/${userId}/toggle-active`);
-            UI.showSuccess('وضعیت کاربر تغییر یافت');
         } catch (error) {
-            UI.showError('خطا در تغییر وضعیت کاربر: ' + error.message);
+            console.error('Error toggling user status:', error);
             throw error;
         }
     }
@@ -360,9 +389,8 @@ class UsersManager {
     async deleteUser(userId) {
         try {
             await API.delete(`/api/admin/users/${userId}`);
-            UI.showSuccess('کاربر حذف شد');
         } catch (error) {
-            UI.showError('خطا در حذف کاربر: ' + error.message);
+            console.error('Error deleting user:', error);
             throw error;
         }
     }
@@ -374,60 +402,14 @@ class DashboardManager {
         try {
             return await API.get('/api/dashboard/stats');
         } catch (error) {
-            UI.showError('خطا در بارگذاری آمار: ' + error.message);
+            console.error('Error loading stats:', error);
             throw error;
         }
-    }
-    
-    renderStats(stats) {
-        const statsContainer = document.getElementById('stats-container');
-        if (!statsContainer) return;
-        
-        statsContainer.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-icon orders">📋</div>
-                <div class="stat-content">
-                    <h3>${stats.total_orders_today}</h3>
-                    <p>سفارشات امروز</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon revenue">💰</div>
-                <div class="stat-content">
-                    <h3>${UI.formatCurrency(stats.total_revenue_today)}</h3>
-                    <p>فروش امروز</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon pending">⏳</div>
-                <div class="stat-content">
-                    <h3>${stats.pending_orders}</h3>
-                    <p>سفارشات در انتظار</p>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon products">☕</div>
-                <div class="stat-content">
-                    <h3>${stats.total_products}</h3>
-                    <p>محصولات</p>
-                </div>
-            </div>
-            ${stats.total_users > 0 ? `
-            <div class="stat-card">
-                <div class="stat-icon users">👥</div>
-                <div class="stat-content">
-                    <h3>${stats.total_users}</h3>
-                    <p>کاربران</p>
-                </div>
-            </div>
-            ` : ''}
-        `;
     }
 }
 
 // Initialize authentication check on protected pages
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if we're on a protected page (not login or index)
     const currentPath = window.location.pathname;
     const publicPaths = ['/', '/login'];
     
@@ -435,7 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = '/login';
     }
     
-    // Update user info in navbar if present
     const userInfo = document.getElementById('user-info');
     if (userInfo && AuthManager.isAuthenticated()) {
         const user = AuthManager.getUser();
@@ -444,7 +425,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Logout button handler
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
@@ -465,4 +445,3 @@ window.ProductsManager = ProductsManager;
 window.OrdersManager = OrdersManager;
 window.UsersManager = UsersManager;
 window.DashboardManager = DashboardManager;
-

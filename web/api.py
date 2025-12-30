@@ -579,6 +579,117 @@ async def create_user(
         session.close()
 
 
+@app.put("/api/admin/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: int,
+    user_data: UserCreate,
+    current_user: UserModel = Depends(get_current_admin)
+):
+    """Update a user (admin only)"""
+    session = SessionLocal()
+    try:
+        user = session.query(UserModel).filter_by(id=user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="کاربر یافت نشد"
+            )
+        
+        # Check username uniqueness
+        existing = session.query(UserModel).filter(
+            UserModel.username == user_data.username,
+            UserModel.id != user_id
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="این نام کاربری قبلاً استفاده شده است"
+            )
+        
+        user.username = user_data.username
+        user.full_name = user_data.full_name
+        user.role = user_data.role
+        
+        # Update password only if provided
+        if user_data.password:
+            user.password_hash = get_password_hash(user_data.password)
+        
+        session.commit()
+        session.refresh(user)
+        
+        return UserResponse(
+            id=user.id,
+            username=user.username,
+            full_name=user.full_name,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at,
+            last_login=user.last_login
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"خطا در ویرایش کاربر: {str(e)}"
+        )
+    finally:
+        session.close()
+
+
+@app.patch("/api/admin/users/{user_id}/activate")
+async def activate_user(
+    user_id: int,
+    current_user: UserModel = Depends(get_current_admin)
+):
+    """Activate a user (admin only)"""
+    session = SessionLocal()
+    try:
+        user = session.query(UserModel).filter_by(id=user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="کاربر یافت نشد"
+            )
+        
+        user.is_active = True
+        session.commit()
+        
+        return {"message": "کاربر فعال شد", "is_active": True}
+    finally:
+        session.close()
+
+
+@app.patch("/api/admin/users/{user_id}/deactivate")
+async def deactivate_user(
+    user_id: int,
+    current_user: UserModel = Depends(get_current_admin)
+):
+    """Deactivate a user (admin only)"""
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="نمی‌توانید حساب خودتان را غیرفعال کنید"
+        )
+    
+    session = SessionLocal()
+    try:
+        user = session.query(UserModel).filter_by(id=user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="کاربر یافت نشد"
+            )
+        
+        user.is_active = False
+        session.commit()
+        
+        return {"message": "کاربر غیرفعال شد", "is_active": False}
+    finally:
+        session.close()
+
+
 @app.patch("/api/admin/users/{user_id}/toggle-active")
 async def toggle_user_active(
     user_id: int,
