@@ -2,96 +2,122 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مدیریت کاربران - سیستم مدیریت کافه</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#8b4513">
+    <title>مدیریت کاربران - کافه</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- Top Navigation -->
     <nav class="navbar">
         <div class="navbar-content">
             <a href="/dashboard" class="navbar-brand">☕ کافه</a>
             <div class="navbar-user">
-                <span class="user-badge" id="user-info">کاربر</span>
+                <span class="user-badge" id="user-info">مدیر</span>
                 <a href="#" id="logout-btn" class="btn btn-secondary btn-sm">خروج</a>
             </div>
-            <button class="navbar-toggle" id="navbar-toggle" aria-label="منوی ناوبری">
-                ☰
-            </button>
+            <button class="navbar-toggle" id="navbar-toggle">☰</button>
             <ul class="navbar-menu mobile-hidden" id="navbar-menu">
                 <li><a href="/dashboard">📊 داشبورد</a></li>
                 <li><a href="/new-order">➕ سفارش جدید</a></li>
-                <li><a href="/orders">📋 مدیریت سفارشات</a></li>
-                <li><a href="/admin" class="active">👥 مدیریت کاربران</a></li>
+                <li><a href="/orders">📋 سفارشات</a></li>
+                <li><a href="/admin" class="active">👥 کاربران</a></li>
             </ul>
         </div>
     </nav>
     
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-items">
+            <a href="/dashboard" class="bottom-nav-item">
+                <span class="icon">📊</span>
+                داشبورد
+            </a>
+            <a href="/new-order" class="bottom-nav-item">
+                <span class="icon">➕</span>
+                سفارش
+            </a>
+            <a href="/orders" class="bottom-nav-item">
+                <span class="icon">📋</span>
+                سفارشات
+            </a>
+            <a href="/admin" class="bottom-nav-item active">
+                <span class="icon">👥</span>
+                کاربران
+            </a>
+        </div>
+    </nav>
+    
     <div class="container">
-        <div style="margin: 30px 0;">
-            <h1 style="color: var(--primary-color); margin-bottom: 10px;">👥 مدیریت کاربران</h1>
-            <p style="color: var(--text-secondary);">ایجاد و مدیریت کاربران سیستم</p>
+        <div class="page-header">
+            <h1>👥 مدیریت کاربران</h1>
+            <p>ایجاد و مدیریت کاربران</p>
         </div>
         
-        <!-- Add User Button -->
-        <div style="margin-bottom: 20px;">
-            <button id="add-user-btn" class="btn btn-primary">➕ افزودن کاربر جدید</button>
-        </div>
-        
-        <!-- Users Table -->
+        <!-- Actions -->
         <div class="card">
-            <div class="card-header">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>👥 لیست کاربران</span>
-                    <button id="refresh-btn" class="btn btn-primary btn-sm">🔄 بروزرسانی</button>
-                </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <button id="add-user-btn" class="btn btn-success" style="flex:1;min-width:150px;">
+                    ➕ کاربر جدید
+                </button>
+                <button id="refresh-btn" class="btn btn-secondary" style="flex:1;min-width:150px;">
+                    🔄 بروزرسانی
+                </button>
             </div>
-            <div class="card-body">
-                <div id="users-container">
-                    <div class="spinner"></div>
-                </div>
+        </div>
+        
+        <!-- Users List -->
+        <div id="users-container">
+            <div class="card">
+                <div class="spinner"></div>
             </div>
         </div>
     </div>
     
-    <!-- Add User Modal -->
-    <div id="user-modal" class="modal">
+    <!-- User Modal -->
+    <div class="modal" id="user-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>افزودن کاربر جدید</h2>
-                <span class="modal-close" onclick="closeUserModal()">×</span>
+                <h2 id="modal-title">کاربر جدید</h2>
+                <span class="modal-close" onclick="closeModal()">✕</span>
             </div>
             <form id="user-form">
                 <div class="form-group">
-                    <label class="form-label" for="username">نام کاربری</label>
-                    <input type="text" id="username" class="form-control" required minlength="3">
+                    <label class="form-label">نام کاربری</label>
+                    <input type="text" id="form-username" class="form-control" required autocomplete="off">
                 </div>
-                
                 <div class="form-group">
-                    <label class="form-label" for="password">رمز عبور</label>
-                    <input type="password" id="password" class="form-control" required minlength="4">
+                    <label class="form-label">نام کامل</label>
+                    <input type="text" id="form-fullname" class="form-control" required>
                 </div>
-                
                 <div class="form-group">
-                    <label class="form-label" for="full_name">نام کامل</label>
-                    <input type="text" id="full_name" class="form-control" required>
+                    <label class="form-label">رمز عبور</label>
+                    <input type="password" id="form-password" class="form-control" autocomplete="new-password">
+                    <small style="color:#666;">برای ویرایش، خالی بگذارید اگر نمی‌خواهید تغییر دهید</small>
                 </div>
-                
                 <div class="form-group">
-                    <label class="form-label" for="role">نقش</label>
-                    <select id="role" class="form-select" required>
+                    <label class="form-label">نقش</label>
+                    <select id="form-role" class="form-select">
                         <option value="cashier">صندوقدار</option>
                         <option value="kitchen">آشپزخانه</option>
                         <option value="admin">مدیر</option>
                     </select>
                 </div>
-                
-                <div style="display: flex; gap: 10px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">انصراف</button>
-                    <button type="submit" class="btn btn-success" style="flex: 1;">ایجاد کاربر</button>
+                <div style="display:flex;gap:12px;margin-top:20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex:1;">
+                        انصراف
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">
+                        ذخیره
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+    
+    <!-- Toast -->
+    <div id="toast" class="alert alert-success" style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:9999;display:none;min-width:280px;text-align:center;"></div>
     
     <script src="/static/app.js"></script>
     <script>
@@ -102,9 +128,11 @@
         
         const user = AuthManager.getUser();
         if (!user || user.role !== 'admin') {
-            alert('این صفحه فقط برای مدیران قابل دسترسی است');
+            alert('دسترسی مجاز نیست');
             window.location.href = '/dashboard';
         }
+        
+        document.getElementById('user-info').textContent = user.full_name || user.username;
         
         // Mobile navigation toggle
         document.getElementById('navbar-toggle').addEventListener('click', () => {
@@ -112,24 +140,37 @@
             menu.classList.toggle('mobile-hidden');
         });
         
-        // Close menu when clicking a link
-        document.querySelectorAll('.navbar-menu a').forEach(link => {
-            link.addEventListener('click', () => {
-                document.getElementById('navbar-menu').classList.add('mobile-hidden');
-            });
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            AuthManager.logout();
+            window.location.href = '/login';
         });
         
         // Users Manager
         const usersManager = new UsersManager();
         let currentUsers = [];
+        let editingUserId = null;
+        
+        // Role names
+        const roleNames = {
+            'admin': '👑 مدیر',
+            'cashier': '💰 صندوقدار',
+            'kitchen': '👨‍🍳 آشپزخانه'
+        };
         
         // Load users
         async function loadUsers() {
+            const container = document.getElementById('users-container');
+            container.innerHTML = '<div class="card"><div class="spinner"></div></div>';
+            
             try {
-                currentUsers = await usersManager.loadUsers();
+                const users = await usersManager.loadUsers();
+                currentUsers = users || [];
                 renderUsers();
             } catch (error) {
                 console.error('Error loading users:', error);
+                container.innerHTML = '<div class="card"><p style="text-align:center;color:#666;padding:20px;">خطا در بارگذاری</p></div>';
             }
         }
         
@@ -138,145 +179,146 @@
             const container = document.getElementById('users-container');
             
             if (currentUsers.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">کاربری یافت نشد</p>';
+                container.innerHTML = '<div class="card"><p style="text-align:center;color:#666;padding:40px;">کاربری یافت نشد</p></div>';
                 return;
             }
             
-            const currentUser = AuthManager.getUser();
-            
-            const tableHTML = `
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>نام کاربری</th>
-                            <th>نام کامل</th>
-                            <th>نقش</th>
-                            <th>وضعیت</th>
-                            <th>تاریخ ایجاد</th>
-                            <th>آخرین ورود</th>
-                            <th>عملیات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${currentUsers.map(u => `
-                            <tr>
-                                <td><strong>${u.username}</strong></td>
-                                <td>${u.full_name}</td>
-                                <td><span class="badge badge-info">${getRoleText(u.role)}</span></td>
-                                <td>
-                                    <span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}">
-                                        ${u.is_active ? 'فعال' : 'غیرفعال'}
-                                    </span>
-                                </td>
-                                <td>${UI.formatDate(u.created_at)}</td>
-                                <td>${u.last_login ? UI.formatDate(u.last_login) : '-'}</td>
-                                <td>
-                                    ${u.id !== currentUser.id ? `
-                                        <button class="btn btn-sm btn-warning" onclick="toggleUserActive(${u.id})">
-                                            ${u.is_active ? 'غیرفعال' : 'فعال'}
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">حذف</button>
-                                    ` : '<span style="color: var(--text-secondary);">شما</span>'}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            
-            container.innerHTML = tableHTML;
+            container.innerHTML = currentUsers.map(u => `
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+                        <div style="flex:1;min-width:200px;">
+                            <h3 style="margin:0;color:var(--primary-color);">${u.full_name || u.username}</h3>
+                            <p style="margin:4px 0;color:#666;">@${u.username}</p>
+                            <p style="margin:4px 0;">
+                                <span class="badge ${u.role === 'admin' ? 'badge-primary' : 'badge-info'}">
+                                    ${roleNames[u.role] || u.role}
+                                </span>
+                                <span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}" style="margin-right:8px;">
+                                    ${u.is_active ? 'فعال' : 'غیرفعال'}
+                                </span>
+                            </p>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button class="btn btn-primary btn-sm" onclick="editUser(${u.id})">
+                                ✏️ ویرایش
+                            </button>
+                            ${u.id !== user.id ? `
+                                <button class="btn btn-${u.is_active ? 'warning' : 'success'} btn-sm" onclick="toggleUserStatus(${u.id}, ${u.is_active})">
+                                    ${u.is_active ? '🚫 غیرفعال' : '✅ فعال'}
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
         
-        // Get role text
-        function getRoleText(role) {
-            const roleMap = {
-                'admin': 'مدیر',
-                'cashier': 'صندوقدار',
-                'kitchen': 'آشپزخانه'
-            };
-            return roleMap[role] || role;
-        }
-        
-        // Show add user modal
-        document.getElementById('add-user-btn').addEventListener('click', () => {
-            document.getElementById('user-form').reset();
+        // Show modal
+        function showModal(title) {
+            document.getElementById('modal-title').textContent = title;
             document.getElementById('user-modal').classList.add('show');
+        }
+        
+        // Close modal
+        function closeModal() {
+            document.getElementById('user-modal').classList.remove('show');
+            document.getElementById('user-form').reset();
+            editingUserId = null;
+        }
+        
+        // Add user button
+        document.getElementById('add-user-btn').addEventListener('click', () => {
+            editingUserId = null;
+            document.getElementById('user-form').reset();
+            document.getElementById('form-password').required = true;
+            showModal('کاربر جدید');
         });
         
-        // Close user modal
-        function closeUserModal() {
-            document.getElementById('user-modal').classList.remove('show');
+        // Edit user
+        function editUser(userId) {
+            const u = currentUsers.find(x => x.id === userId);
+            if (!u) return;
+            
+            editingUserId = userId;
+            document.getElementById('form-username').value = u.username;
+            document.getElementById('form-fullname').value = u.full_name || '';
+            document.getElementById('form-password').value = '';
+            document.getElementById('form-password').required = false;
+            document.getElementById('form-role').value = u.role;
+            
+            showModal('ویرایش کاربر');
         }
         
-        // Submit user form
+        // Toggle user status
+        async function toggleUserStatus(userId, currentStatus) {
+            const action = currentStatus ? 'غیرفعال' : 'فعال';
+            if (!confirm(`آیا کاربر ${action} شود؟`)) return;
+            
+            try {
+                if (currentStatus) {
+                    await usersManager.deactivateUser(userId);
+                } else {
+                    await usersManager.activateUser(userId);
+                }
+                showToast(`✅ کاربر ${action} شد`);
+                loadUsers();
+            } catch (error) {
+                console.error('Error toggling user status:', error);
+                showToast('❌ خطا');
+            }
+        }
+        
+        // Form submit
         document.getElementById('user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const userData = {
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value,
-                full_name: document.getElementById('full_name').value,
-                role: document.getElementById('role').value
+                username: document.getElementById('form-username').value.trim(),
+                full_name: document.getElementById('form-fullname').value.trim(),
+                role: document.getElementById('form-role').value
             };
             
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'در حال ایجاد...';
+            const password = document.getElementById('form-password').value;
+            if (password) {
+                userData.password = password;
+            }
             
             try {
-                await usersManager.createUser(userData);
-                closeUserModal();
-                await loadUsers();
+                if (editingUserId) {
+                    await usersManager.updateUser(editingUserId, userData);
+                    showToast('✅ کاربر ویرایش شد');
+                } else {
+                    await usersManager.createUser(userData);
+                    showToast('✅ کاربر ایجاد شد');
+                }
+                closeModal();
+                loadUsers();
             } catch (error) {
-                console.error('Error creating user:', error);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'ایجاد کاربر';
+                console.error('Error saving user:', error);
+                showToast('❌ خطا در ذخیره');
             }
         });
         
-        // Toggle user active status
-        async function toggleUserActive(userId) {
-            if (!confirm('آیا می‌خواهید وضعیت این کاربر را تغییر دهید؟')) {
-                return;
-            }
-            
-            try {
-                await usersManager.toggleUserActive(userId);
-                await loadUsers();
-            } catch (error) {
-                console.error('Error toggling user status:', error);
-            }
+        // Show toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
         }
         
-        // Delete user
-        async function deleteUser(userId) {
-            if (!confirm('آیا مطمئن هستید که می‌خواهید این کاربر را حذف کنید؟')) {
-                return;
-            }
-            
-            try {
-                await usersManager.deleteUser(userId);
-                await loadUsers();
-            } catch (error) {
-                console.error('Error deleting user:', error);
-            }
-        }
-        
-        // Event listeners
+        // Refresh button
         document.getElementById('refresh-btn').addEventListener('click', loadUsers);
         
         // Close modal on background click
         document.getElementById('user-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'user-modal') {
-                closeUserModal();
-            }
+            if (e.target.id === 'user-modal') closeModal();
         });
         
         // Make functions global
-        window.closeUserModal = closeUserModal;
-        window.toggleUserActive = toggleUserActive;
-        window.deleteUser = deleteUser;
+        window.editUser = editUser;
+        window.toggleUserStatus = toggleUserStatus;
+        window.closeModal = closeModal;
         
         // Load users on page load
         loadUsers();

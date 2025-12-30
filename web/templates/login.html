@@ -2,55 +2,61 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ورود - سیستم مدیریت کافه</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#8b4513">
+    <title>ورود - کافه</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <h1>☕ سیستم مدیریت کافه</h1>
-                <p>لطفاً وارد حساب کاربری خود شوید</p>
+                <div class="logo">☕</div>
+                <h1>سیستم مدیریت کافه</h1>
+                <p>وارد حساب کاربری شوید</p>
             </div>
             
             <form id="login-form">
                 <div class="form-group">
-                    <label class="form-label" for="username">نام کاربری</label>
+                    <label class="form-label" for="username">👤 نام کاربری</label>
                     <input 
                         type="text" 
                         id="username" 
                         name="username" 
                         class="form-control" 
                         required 
-                        autofocus
-                        placeholder="نام کاربری خود را وارد کنید"
+                        autocomplete="username"
+                        autocapitalize="off"
+                        placeholder="نام کاربری"
                     >
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="password">رمز عبور</label>
+                    <label class="form-label" for="password">🔒 رمز عبور</label>
                     <input 
                         type="password" 
                         id="password" 
                         name="password" 
                         class="form-control" 
                         required
-                        placeholder="رمز عبور خود را وارد کنید"
+                        autocomplete="current-password"
+                        placeholder="رمز عبور"
                     >
                 </div>
                 
-                <div id="error-message" class="form-error hidden"></div>
+                <div id="error-message" class="alert alert-danger hidden"></div>
                 
-                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                <button type="submit" class="btn btn-primary btn-lg btn-block">
                     ورود به سیستم
                 </button>
             </form>
             
-            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; font-size: 0.9rem;">
-                <p style="margin-bottom: 5px;"><strong>🔑 اطلاعات پیش‌فرض:</strong></p>
-                <p style="margin: 0;">نام کاربری: <code style="background: white; padding: 2px 8px; border-radius: 3px;">admin</code></p>
-                <p style="margin: 0;">رمز عبور: <code style="background: white; padding: 2px 8px; border-radius: 3px;">admin123</code></p>
+            <div class="login-info">
+                <strong>🔑 اطلاعات پیش‌فرض:</strong>
+                <p>نام کاربری: <code>admin</code></p>
+                <p>رمز عبور: <code>admin123</code></p>
             </div>
         </div>
     </div>
@@ -65,14 +71,14 @@
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('error-message');
             const submitBtn = e.target.querySelector('button[type="submit"]');
             
             errorDiv.classList.add('hidden');
             submitBtn.disabled = true;
-            submitBtn.textContent = 'در حال ورود...';
+            submitBtn.textContent = '⏳ در حال ورود...';
             
             try {
                 await AuthManager.login(username, password);
@@ -84,12 +90,8 @@
                 
                 if (error.message) {
                     errorMessage = error.message;
-                } else if (error instanceof TypeError && error.message.includes('fetch')) {
-                    errorMessage = 'خطا در اتصال به سرور. لطفاً مطمئن شوید سرور در حال اجرا است.';
-                } else if (error.message && error.message.includes('401')) {
-                    errorMessage = 'نام کاربری یا رمز عبور اشتباه است';
-                } else if (error.message && error.message.includes('Network')) {
-                    errorMessage = 'خطا در شبکه. لطفاً اتصال اینترنت را بررسی کنید.';
+                } else if (error instanceof TypeError) {
+                    errorMessage = 'خطا در اتصال به سرور';
                 }
                 
                 errorDiv.textContent = errorMessage;
