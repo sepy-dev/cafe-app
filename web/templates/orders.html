@@ -2,9 +2,9 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#8b4513">
+    <meta name="theme-color" content="#6F4E37">
     <title>سفارشات - کافه</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -20,19 +20,19 @@
             <button class="navbar-toggle" id="navbar-toggle">☰</button>
             <ul class="navbar-menu mobile-hidden" id="navbar-menu">
                 <li><a href="/dashboard">📊 داشبورد</a></li>
-                <li><a href="/new-order">➕ سفارش جدید</a></li>
+                <li><a href="/new-order">➕ سفارش</a></li>
                 <li><a href="/orders" class="active">📋 سفارشات</a></li>
                 <li id="admin-menu-item" style="display: none;"><a href="/admin">👥 کاربران</a></li>
             </ul>
         </div>
     </nav>
     
-    <!-- Bottom Navigation (Mobile) -->
+    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <div class="bottom-nav-items">
             <a href="/dashboard" class="bottom-nav-item">
-                <span class="icon">📊</span>
-                داشبورد
+                <span class="icon">🏠</span>
+                خانه
             </a>
             <a href="/new-order" class="bottom-nav-item">
                 <span class="icon">➕</span>
@@ -49,6 +49,9 @@
         </div>
     </nav>
     
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
     <div class="container">
         <div class="page-header">
             <h1>📋 سفارشات</h1>
@@ -56,22 +59,20 @@
         </div>
         
         <!-- Filters -->
-        <div class="card">
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <select id="status-filter" class="form-select" style="flex:1;min-width:150px;">
-                    <option value="all">همه وضعیت‌ها</option>
+        <div class="card" style="padding: 12px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;">
+                <select id="status-filter" class="form-select" style="min-height:48px;">
+                    <option value="all">📋 همه</option>
                     <option value="open">⏳ باز</option>
                     <option value="closed">✅ بسته</option>
                 </select>
-                <button id="refresh-btn" class="btn btn-secondary">
-                    🔄 بروزرسانی
-                </button>
+                <button id="refresh-btn" class="btn btn-secondary btn-icon">🔄</button>
             </div>
         </div>
         
         <!-- Orders List -->
         <div id="orders-container">
-            <div class="card">
+            <div class="card" style="padding:40px;">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -88,17 +89,13 @@
         </div>
     </div>
     
-    <!-- Toast -->
-    <div id="toast" class="alert alert-success" style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:9999;display:none;min-width:280px;text-align:center;"></div>
-    
     <script src="/static/app.js"></script>
     <script>
-        // Check authentication
+        // Auth
         if (!AuthManager.isAuthenticated()) {
             window.location.href = '/login';
         }
         
-        // Get user info
         const user = AuthManager.getUser();
         if (user) {
             document.getElementById('user-info').textContent = user.full_name || user.username;
@@ -107,217 +104,225 @@
             }
         }
         
-        // Mobile navigation toggle
+        // Navigation
         document.getElementById('navbar-toggle').addEventListener('click', () => {
-            const menu = document.getElementById('navbar-menu');
-            menu.classList.toggle('mobile-hidden');
+            document.getElementById('navbar-menu').classList.toggle('mobile-hidden');
         });
         
-        // Logout
         document.getElementById('logout-btn').addEventListener('click', (e) => {
             e.preventDefault();
             AuthManager.logout();
             window.location.href = '/login';
         });
         
-        // Orders Manager
+        // Toast
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+        
+        // Data
         const ordersManager = new OrdersManager();
         let currentOrders = [];
         
-        // Format price
         function formatPrice(price) {
             return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
         }
         
-        // Format date
         function formatDate(dateStr) {
             if (!dateStr) return '-';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('fa-IR') + ' ' + date.toLocaleTimeString('fa-IR', {hour:'2-digit',minute:'2-digit'});
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('fa-IR') + ' - ' + d.toLocaleTimeString('fa-IR', {hour:'2-digit',minute:'2-digit'});
+        }
+        
+        function getTimeAgo(dateStr) {
+            if (!dateStr) return '';
+            const diff = Date.now() - new Date(dateStr).getTime();
+            const mins = Math.floor(diff / 60000);
+            if (mins < 1) return 'همین الان';
+            if (mins < 60) return mins + ' دقیقه پیش';
+            const hours = Math.floor(mins / 60);
+            if (hours < 24) return hours + ' ساعت پیش';
+            return Math.floor(hours / 24) + ' روز پیش';
         }
         
         // Load orders
         async function loadOrders() {
             const container = document.getElementById('orders-container');
-            container.innerHTML = '<div class="card"><div class="spinner"></div></div>';
+            container.innerHTML = '<div class="card" style="padding:60px;"><div class="spinner"></div></div>';
             
             try {
                 const orders = await ordersManager.loadOrders();
                 currentOrders = orders || [];
                 renderOrders();
             } catch (error) {
-                console.error('Error loading orders:', error);
-                container.innerHTML = '<div class="card"><p style="text-align:center;color:#666;padding:20px;">خطا در بارگذاری سفارشات</p></div>';
+                console.error('Error:', error);
+                container.innerHTML = '<div class="card"><p style="text-align:center;color:#888;padding:40px;">❌ خطا در بارگذاری</p></div>';
             }
         }
         
-        // Render orders
         function renderOrders() {
             const container = document.getElementById('orders-container');
-            const statusFilter = document.getElementById('status-filter').value;
+            const filter = document.getElementById('status-filter').value;
             
-            let filteredOrders = currentOrders;
-            if (statusFilter !== 'all') {
-                filteredOrders = currentOrders.filter(o => o.status === statusFilter);
+            let orders = currentOrders;
+            if (filter !== 'all') {
+                orders = currentOrders.filter(o => o.status === filter);
             }
             
-            if (filteredOrders.length === 0) {
-                container.innerHTML = '<div class="card"><p style="text-align:center;color:#666;padding:40px;">سفارشی یافت نشد</p></div>';
+            if (orders.length === 0) {
+                container.innerHTML = '<div class="card"><p style="text-align:center;color:#888;padding:60px 20px;">📋 سفارشی یافت نشد</p></div>';
                 return;
             }
             
-            container.innerHTML = filteredOrders.map(order => `
-                <div class="card" style="cursor:pointer;" onclick="showOrderDetails(${order.id})">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <div>
-                            <h3 style="margin:0;color:var(--primary-color);">سفارش #${order.id}</h3>
-                            <p style="margin:8px 0 0;color:#666;">
+            container.innerHTML = orders.map((order, i) => `
+                <div class="card" style="cursor:pointer;animation-delay:${i*0.05}s;" onclick="showOrder(${order.id})">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                                <strong style="font-size:1.1rem;color:#333;">#${order.id}</strong>
+                                <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}">
+                                    ${order.status === 'open' ? '⏳ باز' : '✅ بسته'}
+                                </span>
+                            </div>
+                            <p style="margin:0;color:#666;font-size:0.9rem;">
                                 ${order.table_number ? '🍽️ میز ' + order.table_number : '🛍️ بیرون‌بر'}
                             </p>
-                            <p style="margin:4px 0 0;font-size:0.85rem;color:#999;">
-                                ${formatDate(order.created_at)}
+                            <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">
+                                ${getTimeAgo(order.created_at)}
                             </p>
                         </div>
-                        <div style="text-align:left;">
-                            <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}">
-                                ${order.status === 'open' ? '⏳ باز' : '✅ بسته'}
-                            </span>
-                            <p style="margin:8px 0 0;font-weight:700;color:var(--primary-color);">
+                        <div style="text-align:left;flex-shrink:0;">
+                            <p style="margin:0;font-weight:800;color:#6F4E37;font-size:1.1rem;">
                                 ${formatPrice(order.total || 0)}
+                            </p>
+                            <p style="margin:4px 0 0;font-size:0.85rem;color:#888;">
+                                ${order.items ? order.items.length + ' آیتم' : ''}
                             </p>
                         </div>
                     </div>
                     ${order.items && order.items.length > 0 ? `
-                        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;font-size:0.9rem;color:#666;">
-                            ${order.items.slice(0,3).map(item => `${item.name} (${item.quantity})`).join('، ')}
-                            ${order.items.length > 3 ? '...' : ''}
+                        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee;font-size:0.85rem;color:#666;">
+                            ${order.items.slice(0,3).map(item => item.name + ' (' + item.quantity + ')').join(' • ')}
+                            ${order.items.length > 3 ? ' ...' : ''}
                         </div>
                     ` : ''}
                 </div>
             `).join('');
         }
         
-        // Show order details
-        function showOrderDetails(orderId) {
+        function showOrder(orderId) {
             const order = currentOrders.find(o => o.id === orderId);
             if (!order) return;
             
             const modal = document.getElementById('order-modal');
-            const modalBody = document.getElementById('modal-body');
+            document.getElementById('modal-title').textContent = 'سفارش #' + order.id;
             
-            document.getElementById('modal-title').textContent = `سفارش #${order.id}`;
+            const subtotal = order.items ? order.items.reduce((s, i) => s + (i.price * i.quantity), 0) : 0;
             
-            const subtotal = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
-            
-            modalBody.innerHTML = `
-                <div style="margin-bottom:16px;">
-                    <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}">
-                        ${order.status === 'open' ? '⏳ باز' : '✅ بسته'}
+            document.getElementById('modal-body').innerHTML = `
+                <div style="margin-bottom:20px;">
+                    <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}" style="font-size:0.9rem;">
+                        ${order.status === 'open' ? '⏳ سفارش باز' : '✅ سفارش بسته شده'}
                     </span>
                 </div>
                 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
-                    <div>
-                        <small style="color:#666;">میز</small>
-                        <p style="margin:4px 0;font-weight:600;">${order.table_number ? 'میز ' + order.table_number : 'بیرون‌بر'}</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+                    <div style="background:#f8f8f8;padding:14px;border-radius:12px;">
+                        <small style="color:#888;display:block;margin-bottom:4px;">🍽️ میز</small>
+                        <strong>${order.table_number ? 'میز ' + order.table_number : 'بیرون‌بر'}</strong>
                     </div>
-                    <div>
-                        <small style="color:#666;">تاریخ</small>
-                        <p style="margin:4px 0;font-weight:600;">${formatDate(order.created_at)}</p>
+                    <div style="background:#f8f8f8;padding:14px;border-radius:12px;">
+                        <small style="color:#888;display:block;margin-bottom:4px;">🕐 زمان</small>
+                        <strong style="font-size:0.85rem;">${getTimeAgo(order.created_at)}</strong>
                     </div>
                 </div>
                 
-                <h4 style="margin-bottom:12px;">آیتم‌ها</h4>
-                <div style="background:#f8f9fa;border-radius:12px;padding:12px;margin-bottom:16px;">
+                <h4 style="margin-bottom:12px;color:#333;">📦 آیتم‌ها</h4>
+                <div style="background:#f8f8f8;border-radius:12px;overflow:hidden;margin-bottom:20px;">
                     ${order.items && order.items.length > 0 ? order.items.map(item => `
-                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;">
+                        <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;">
                             <span>${item.name} × ${item.quantity}</span>
-                            <span>${formatPrice(item.price * item.quantity)}</span>
+                            <strong>${formatPrice(item.price * item.quantity)}</strong>
                         </div>
-                    `).join('') : '<p style="color:#666;text-align:center;">بدون آیتم</p>'}
+                    `).join('') : '<p style="padding:20px;text-align:center;color:#888;">بدون آیتم</p>'}
                 </div>
                 
-                <div style="border-top:2px solid #eee;padding-top:12px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <div style="border-top:2px dashed #ddd;padding-top:16px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.95rem;">
                         <span>جمع:</span>
                         <span>${formatPrice(subtotal)}</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.95rem;color:#EF4444;">
                         <span>تخفیف:</span>
-                        <span>${formatPrice(order.discount || 0)}</span>
+                        <span>- ${formatPrice(order.discount || 0)}</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;font-size:1.2rem;font-weight:700;color:var(--primary-color);">
-                        <span>مبلغ نهایی:</span>
+                    <div style="display:flex;justify-content:space-between;font-size:1.25rem;font-weight:800;color:#6F4E37;padding-top:10px;border-top:2px solid #eee;">
+                        <span>💰 مبلغ نهایی:</span>
                         <span>${formatPrice(order.total || 0)}</span>
                     </div>
                 </div>
                 
                 ${order.status === 'open' ? `
-                    <div style="margin-top:20px;display:flex;gap:10px;">
-                        <button class="btn btn-success btn-block" onclick="closeOrder(${order.id})">
-                            ✅ بستن سفارش
-                        </button>
-                    </div>
+                    <button class="btn btn-success btn-block mt-3" onclick="closeOrder(${order.id})" style="font-size:1.1rem;">
+                        ✅ بستن سفارش
+                    </button>
                 ` : ''}
             `;
             
             modal.classList.add('show');
         }
         
-        // Close modal
         function closeModal() {
             document.getElementById('order-modal').classList.remove('show');
         }
         
-        // Close order
         async function closeOrder(orderId) {
-            if (!confirm('آیا سفارش بسته شود؟')) return;
+            if (!confirm('سفارش بسته شود؟')) return;
             
             try {
                 await ordersManager.updateOrderStatus(orderId, 'closed');
                 closeModal();
                 showToast('✅ سفارش بسته شد');
                 loadOrders();
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             } catch (error) {
-                console.error('Error closing order:', error);
-                showToast('❌ خطا در بستن سفارش');
+                console.error('Error:', error);
+                showToast('❌ خطا', 'error');
             }
         }
         
-        // Show toast
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2000);
-        }
-        
-        // Event listeners
+        // Events
         document.getElementById('status-filter').addEventListener('change', renderOrders);
         document.getElementById('refresh-btn').addEventListener('click', loadOrders);
         document.getElementById('refresh-btn-mobile').addEventListener('click', (e) => {
             e.preventDefault();
             loadOrders();
+            showToast('🔄 بروزرسانی شد');
         });
         
-        // Close modal on background click
         document.getElementById('order-modal').addEventListener('click', (e) => {
             if (e.target.id === 'order-modal') closeModal();
         });
         
-        // Check URL params for status filter
+        // URL params
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('status')) {
             document.getElementById('status-filter').value = urlParams.get('status');
         }
         
-        // Make functions global
-        window.showOrderDetails = showOrderDetails;
+        // Globals
+        window.showOrder = showOrder;
         window.closeModal = closeModal;
         window.closeOrder = closeOrder;
         
-        // Load orders on page load
+        // Load
         loadOrders();
+        
+        // Auto refresh
+        setInterval(loadOrders, 60000);
     </script>
 </body>
 </html>

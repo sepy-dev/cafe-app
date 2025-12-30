@@ -2,9 +2,9 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#8b4513">
+    <meta name="theme-color" content="#6F4E37">
     <title>مدیریت کاربران - کافه</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -20,19 +20,19 @@
             <button class="navbar-toggle" id="navbar-toggle">☰</button>
             <ul class="navbar-menu mobile-hidden" id="navbar-menu">
                 <li><a href="/dashboard">📊 داشبورد</a></li>
-                <li><a href="/new-order">➕ سفارش جدید</a></li>
+                <li><a href="/new-order">➕ سفارش</a></li>
                 <li><a href="/orders">📋 سفارشات</a></li>
                 <li><a href="/admin" class="active">👥 کاربران</a></li>
             </ul>
         </div>
     </nav>
     
-    <!-- Bottom Navigation (Mobile) -->
+    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <div class="bottom-nav-items">
             <a href="/dashboard" class="bottom-nav-item">
-                <span class="icon">📊</span>
-                داشبورد
+                <span class="icon">🏠</span>
+                خانه
             </a>
             <a href="/new-order" class="bottom-nav-item">
                 <span class="icon">➕</span>
@@ -49,27 +49,28 @@
         </div>
     </nav>
     
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+    
     <div class="container">
         <div class="page-header">
             <h1>👥 مدیریت کاربران</h1>
-            <p>ایجاد و مدیریت کاربران</p>
+            <p>ایجاد و ویرایش کاربران سیستم</p>
         </div>
         
         <!-- Actions -->
-        <div class="card">
-            <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <button id="add-user-btn" class="btn btn-success" style="flex:1;min-width:150px;">
+        <div class="card" style="padding:12px;">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:10px;">
+                <button id="add-user-btn" class="btn btn-success">
                     ➕ کاربر جدید
                 </button>
-                <button id="refresh-btn" class="btn btn-secondary" style="flex:1;min-width:150px;">
-                    🔄 بروزرسانی
-                </button>
+                <button id="refresh-btn" class="btn btn-secondary btn-icon">🔄</button>
             </div>
         </div>
         
         <!-- Users List -->
         <div id="users-container">
-            <div class="card">
+            <div class="card" style="padding:60px;">
                 <div class="spinner"></div>
             </div>
         </div>
@@ -84,154 +85,167 @@
             </div>
             <form id="user-form">
                 <div class="form-group">
-                    <label class="form-label">نام کاربری</label>
-                    <input type="text" id="form-username" class="form-control" required autocomplete="off">
+                    <label class="form-label">👤 نام کاربری</label>
+                    <input type="text" id="form-username" class="form-control" required autocomplete="off" placeholder="مثلاً: ali">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">نام کامل</label>
-                    <input type="text" id="form-fullname" class="form-control" required>
+                    <label class="form-label">📝 نام کامل</label>
+                    <input type="text" id="form-fullname" class="form-control" required placeholder="مثلاً: علی محمدی">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">رمز عبور</label>
-                    <input type="password" id="form-password" class="form-control" autocomplete="new-password">
-                    <small style="color:#666;">برای ویرایش، خالی بگذارید اگر نمی‌خواهید تغییر دهید</small>
+                    <label class="form-label">🔒 رمز عبور</label>
+                    <input type="password" id="form-password" class="form-control" autocomplete="new-password" placeholder="حداقل 6 کاراکتر">
+                    <small style="color:#888;font-size:0.8rem;">برای ویرایش، اگر نمی‌خواهید تغییر دهید خالی بگذارید</small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">نقش</label>
+                    <label class="form-label">🎭 نقش</label>
                     <select id="form-role" class="form-select">
-                        <option value="cashier">صندوقدار</option>
-                        <option value="kitchen">آشپزخانه</option>
-                        <option value="admin">مدیر</option>
+                        <option value="cashier">💰 صندوقدار</option>
+                        <option value="kitchen">👨‍🍳 آشپزخانه</option>
+                        <option value="admin">👑 مدیر</option>
                     </select>
                 </div>
-                <div style="display:flex;gap:12px;margin-top:20px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex:1;">
-                        انصراف
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        ❌ انصراف
                     </button>
-                    <button type="submit" class="btn btn-primary" style="flex:1;">
-                        ذخیره
+                    <button type="submit" class="btn btn-primary">
+                        ✅ ذخیره
                     </button>
                 </div>
             </form>
         </div>
     </div>
     
-    <!-- Toast -->
-    <div id="toast" class="alert alert-success" style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:9999;display:none;min-width:280px;text-align:center;"></div>
-    
     <script src="/static/app.js"></script>
     <script>
-        // Check authentication and admin role
+        // Auth
         if (!AuthManager.isAuthenticated()) {
             window.location.href = '/login';
         }
         
-        const user = AuthManager.getUser();
-        if (!user || user.role !== 'admin') {
+        const currentUser = AuthManager.getUser();
+        if (!currentUser || currentUser.role !== 'admin') {
             alert('دسترسی مجاز نیست');
             window.location.href = '/dashboard';
         }
         
-        document.getElementById('user-info').textContent = user.full_name || user.username;
+        document.getElementById('user-info').textContent = currentUser.full_name || currentUser.username;
         
-        // Mobile navigation toggle
+        // Navigation
         document.getElementById('navbar-toggle').addEventListener('click', () => {
-            const menu = document.getElementById('navbar-menu');
-            menu.classList.toggle('mobile-hidden');
+            document.getElementById('navbar-menu').classList.toggle('mobile-hidden');
         });
         
-        // Logout
         document.getElementById('logout-btn').addEventListener('click', (e) => {
             e.preventDefault();
             AuthManager.logout();
             window.location.href = '/login';
         });
         
-        // Users Manager
+        // Toast
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+        
+        // Data
         const usersManager = new UsersManager();
         let currentUsers = [];
         let editingUserId = null;
         
-        // Role names
         const roleNames = {
             'admin': '👑 مدیر',
             'cashier': '💰 صندوقدار',
             'kitchen': '👨‍🍳 آشپزخانه'
         };
         
+        const roleColors = {
+            'admin': 'badge-primary',
+            'cashier': 'badge-info',
+            'kitchen': 'badge-warning'
+        };
+        
         // Load users
         async function loadUsers() {
             const container = document.getElementById('users-container');
-            container.innerHTML = '<div class="card"><div class="spinner"></div></div>';
+            container.innerHTML = '<div class="card" style="padding:60px;"><div class="spinner"></div></div>';
             
             try {
                 const users = await usersManager.loadUsers();
                 currentUsers = users || [];
                 renderUsers();
             } catch (error) {
-                console.error('Error loading users:', error);
-                container.innerHTML = '<div class="card"><p style="text-align:center;color:#666;padding:20px;">خطا در بارگذاری</p></div>';
+                console.error('Error:', error);
+                container.innerHTML = '<div class="card"><p style="text-align:center;color:#888;padding:40px;">❌ خطا در بارگذاری</p></div>';
             }
         }
         
-        // Render users
         function renderUsers() {
             const container = document.getElementById('users-container');
             
             if (currentUsers.length === 0) {
-                container.innerHTML = '<div class="card"><p style="text-align:center;color:#666;padding:40px;">کاربری یافت نشد</p></div>';
+                container.innerHTML = '<div class="card"><p style="text-align:center;color:#888;padding:60px;">👥 کاربری یافت نشد</p></div>';
                 return;
             }
             
-            container.innerHTML = currentUsers.map(u => `
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
-                        <div style="flex:1;min-width:200px;">
-                            <h3 style="margin:0;color:var(--primary-color);">${u.full_name || u.username}</h3>
-                            <p style="margin:4px 0;color:#666;">@${u.username}</p>
-                            <p style="margin:4px 0;">
-                                <span class="badge ${u.role === 'admin' ? 'badge-primary' : 'badge-info'}">
+            container.innerHTML = currentUsers.map((u, i) => `
+                <div class="card" style="animation-delay:${i*0.05}s;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:180px;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                                <div style="width:48px;height:48px;background:linear-gradient(135deg,#6F4E37,#4a3423);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.25rem;font-weight:700;">
+                                    ${(u.full_name || u.username).charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h3 style="margin:0;font-size:1rem;color:#333;">${u.full_name || u.username}</h3>
+                                    <p style="margin:2px 0 0;color:#888;font-size:0.85rem;">@${u.username}</p>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <span class="badge ${roleColors[u.role] || 'badge-info'}">
                                     ${roleNames[u.role] || u.role}
                                 </span>
-                                <span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}" style="margin-right:8px;">
-                                    ${u.is_active ? 'فعال' : 'غیرفعال'}
+                                <span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}">
+                                    ${u.is_active ? '✅ فعال' : '❌ غیرفعال'}
                                 </span>
-                            </p>
+                            </div>
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button class="btn btn-primary btn-sm" onclick="editUser(${u.id})">
                                 ✏️ ویرایش
                             </button>
-                            ${u.id !== user.id ? `
-                                <button class="btn btn-${u.is_active ? 'warning' : 'success'} btn-sm" onclick="toggleUserStatus(${u.id}, ${u.is_active})">
-                                    ${u.is_active ? '🚫 غیرفعال' : '✅ فعال'}
+                            ${u.id !== currentUser.id ? `
+                                <button class="btn ${u.is_active ? 'btn-warning' : 'btn-success'} btn-sm" onclick="toggleUser(${u.id}, ${u.is_active})">
+                                    ${u.is_active ? '🚫' : '✅'}
                                 </button>
-                            ` : ''}
+                            ` : '<span class="badge badge-primary" style="align-self:center;">شما</span>'}
                         </div>
                     </div>
                 </div>
             `).join('');
         }
         
-        // Show modal
+        // Modal
         function showModal(title) {
             document.getElementById('modal-title').textContent = title;
             document.getElementById('user-modal').classList.add('show');
         }
         
-        // Close modal
         function closeModal() {
             document.getElementById('user-modal').classList.remove('show');
             document.getElementById('user-form').reset();
             editingUserId = null;
         }
         
-        // Add user button
+        // Add user
         document.getElementById('add-user-btn').addEventListener('click', () => {
             editingUserId = null;
             document.getElementById('user-form').reset();
             document.getElementById('form-password').required = true;
-            showModal('کاربر جدید');
+            showModal('➕ کاربر جدید');
         });
         
         // Edit user
@@ -246,25 +260,26 @@
             document.getElementById('form-password').required = false;
             document.getElementById('form-role').value = u.role;
             
-            showModal('ویرایش کاربر');
+            showModal('✏️ ویرایش کاربر');
         }
         
         // Toggle user status
-        async function toggleUserStatus(userId, currentStatus) {
-            const action = currentStatus ? 'غیرفعال' : 'فعال';
-            if (!confirm(`آیا کاربر ${action} شود؟`)) return;
+        async function toggleUser(userId, isActive) {
+            const action = isActive ? 'غیرفعال' : 'فعال';
+            if (!confirm(`کاربر ${action} شود؟`)) return;
             
             try {
-                if (currentStatus) {
+                if (isActive) {
                     await usersManager.deactivateUser(userId);
                 } else {
                     await usersManager.activateUser(userId);
                 }
                 showToast(`✅ کاربر ${action} شد`);
                 loadUsers();
+                if (navigator.vibrate) navigator.vibrate(50);
             } catch (error) {
-                console.error('Error toggling user status:', error);
-                showToast('❌ خطا');
+                console.error('Error:', error);
+                showToast('❌ خطا', 'error');
             }
         }
         
@@ -272,55 +287,45 @@
         document.getElementById('user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const userData = {
+            const data = {
                 username: document.getElementById('form-username').value.trim(),
                 full_name: document.getElementById('form-fullname').value.trim(),
                 role: document.getElementById('form-role').value
             };
             
             const password = document.getElementById('form-password').value;
-            if (password) {
-                userData.password = password;
-            }
+            if (password) data.password = password;
             
             try {
                 if (editingUserId) {
-                    await usersManager.updateUser(editingUserId, userData);
+                    await usersManager.updateUser(editingUserId, data);
                     showToast('✅ کاربر ویرایش شد');
                 } else {
-                    await usersManager.createUser(userData);
+                    await usersManager.createUser(data);
                     showToast('✅ کاربر ایجاد شد');
                 }
                 closeModal();
                 loadUsers();
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
             } catch (error) {
-                console.error('Error saving user:', error);
-                showToast('❌ خطا در ذخیره');
+                console.error('Error:', error);
+                showToast('❌ خطا در ذخیره', 'error');
             }
         });
         
-        // Show toast
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 2000);
-        }
-        
-        // Refresh button
+        // Events
         document.getElementById('refresh-btn').addEventListener('click', loadUsers);
         
-        // Close modal on background click
         document.getElementById('user-modal').addEventListener('click', (e) => {
             if (e.target.id === 'user-modal') closeModal();
         });
         
-        // Make functions global
+        // Globals
         window.editUser = editUser;
-        window.toggleUserStatus = toggleUserStatus;
+        window.toggleUser = toggleUser;
         window.closeModal = closeModal;
         
-        // Load users on page load
+        // Load
         loadUsers();
     </script>
 </body>
