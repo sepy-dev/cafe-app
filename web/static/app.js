@@ -49,15 +49,37 @@ class AuthManager {
             });
             
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Login failed');
+                let errorDetail = 'خطا در ورود به سیستم';
+                try {
+                    const errorData = await response.json();
+                    errorDetail = errorData.detail || errorDetail;
+                } catch (e) {
+                    // If response is not JSON, use status text
+                    if (response.status === 401) {
+                        errorDetail = 'نام کاربری یا رمز عبور اشتباه است';
+                    } else if (response.status === 500) {
+                        errorDetail = 'خطای سرور. لطفاً دوباره تلاش کنید.';
+                    } else if (response.status === 0 || response.status >= 500) {
+                        errorDetail = 'سرور در دسترس نیست. لطفاً مطمئن شوید سرور در حال اجرا است.';
+                    }
+                }
+                throw new Error(errorDetail);
             }
             
             const data = await response.json();
+            
+            if (!data.access_token) {
+                throw new Error('توکن دریافت نشد. لطفاً دوباره تلاش کنید.');
+            }
+            
             this.setToken(data.access_token);
             this.setUser(data.user);
             return data;
         } catch (error) {
+            // Re-throw with better error message
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                throw new Error('خطا در اتصال به سرور. لطفاً مطمئن شوید سرور در حال اجرا است و آدرس صحیح است.');
+            }
             throw error;
         }
     }

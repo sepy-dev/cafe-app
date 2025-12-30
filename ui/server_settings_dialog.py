@@ -4,6 +4,7 @@ Server Settings Dialog for managing the web server configuration
 """
 import subprocess
 import io
+import sys
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QGroupBox, QSpinBox, QCheckBox,
@@ -13,6 +14,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QImage
 from web.server import get_server_runner
 from web.config import get_config_manager
+
+# Try to import win32com for firewall COM API
+try:
+    import win32com.client
+    HAS_WIN32COM = True
+except ImportError:
+    HAS_WIN32COM = False
 
 # QR Code imports
 try:
@@ -613,37 +621,150 @@ class ServerSettingsDialog(QDialog):
         self.qr_frame.setVisible(False)
     
     def open_firewall(self):
-        """Open Windows Firewall for the server port"""
+        """Open Windows Firewall for the server port - Try without admin first"""
         port = self.port_input.value()
         
         reply = QMessageBox.question(
             self, "🛡️ باز کردن فایروال",
-            f"آیا می‌خواهید پورت {port} را در فایروال باز کنید?\n\n"
-            "نیاز به دسترسی Administrator دارد.",
+            f"برای دسترسی از شبکه، باید پورت {port} در فایروال باز شود.\n\n"
+            "روش 1: کلیک روی 'بله' برای باز کردن خودکار (نیاز به Admin)\n"
+            "روش 2: کلیک روی 'خیر' برای مشاهده راهنمای دستی",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
         )
         
         if reply == QMessageBox.Yes:
+            # Try using COM API first (might work without admin in some cases)
+            if HAS_WIN32COM:
+                try:
+                    firewall = win32com.client.Dispatch("HNetCfg.FwMgr")
+                    profile = firewall.LocalPolicy.CurrentProfile
+                    
+                    # Check if rule already exists
+                    rule_name = f"CafeApp_Port_{port}"
+                    rules = profile.Rules
+                    
+                    # Remove existing rule if any
+                    for i in range(rules.Count):
+                        rule = rules.Item(i)
+                        if rule.Name == rule_name:
+                            rules.Remove(rule.Name)
+                            break
+                    
+                    # Create new rule
+                    rule = win32com.client.Dispatch("HNetCfg.FWRule")
+                    rule.Name = rule_name
+                    rule.Description = "Cafe Management System Web Server"
+                    rule.Protocol = 6  # TCP
+                    rule.LocalPorts = str(port)
+                    rule.Direction = 1  # Inbound
+                    rule.Enabled = True
+                    rule.Action = 1  # Allow
+                    rule.Grouping = "CafeApp"
+                    rule.Profiles = 0x7FFFFFFF  # All profiles
+                    
+                    rules.Add(rule)
+                    
+                    QMessageBox.information(
+                        self, "✅ موفق",
+                        f"پورت {port} در فایروال باز شد!\n\n"
+                        "اکنون می‌توانید از دستگاه‌های دیگر به سرور دسترسی پیدا کنید."
+                    )
+                    return
+                except Exception as com_error:
+                    # COM API failed (might need admin), try netsh
+                    print(f"COM API failed: {com_error}")
+                    pass
+            
+            # Fallback to netsh with admin
             try:
                 rule_name = f"CafeApp_Port_{port}"
                 cmd = f'netsh advfirewall firewall add rule name="{rule_name}" dir=in action=allow protocol=TCP localport={port}'
                 
-                # Run as admin
+                # Try to run without admin first (might work if user has permission)
+                try:
+                    result = subprocess.run(
+                        cmd,
+                        shell=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    
+                    if result.returncode == 0:
+                        QMessageBox.information(
+                            self, "✅ موفق",
+                            f"پورت {port} در فایروال باز شد!\n\n"
+                            "اکنون می‌توانید از دستگاه‌های دیگر به سرور دسترسی پیدا کنید."
+                        )
+                        return
+                except:
+                    pass
+                
+                # If that failed, try with admin elevation
+                ps_script = f'''
+$ruleName = "CafeApp_Port_{port}"
+$existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+if ($existingRule) {{
+    Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+}}
+New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow -Profile Any
+'''
+                
                 result = subprocess.run(
-                    ['powershell', '-Command', f'Start-Process cmd -Verb RunAs -ArgumentList \'/c {cmd}\''],
+                    ['powershell', '-Command', 
+                     f'Start-Process powershell -Verb RunAs -Wait -ArgumentList \'-NoExit -Command {ps_script}\''],
                     capture_output=True, text=True, shell=True
                 )
                 
                 QMessageBox.information(
-                    self, "✅ موفق",
+                    self, "✅ دستور اجرا شد",
                     f"دستور فایروال اجرا شد.\n\n"
-                    f"اگر UAC ظاهر شد و تأیید کردید، پورت {port} باز شده است.\n\n"
+                    f"اگر پنجره PowerShell با دسترسی Admin باز شد و خطایی نداشت، پورت {port} باز شده است.\n\n"
                     "اکنون سرور را راه‌اندازی کنید و با گوشی تست کنید."
                 )
             except Exception as e:
-                QMessageBox.warning(
-                    self, "⚠️ خطا",
-                    f"خطا: {str(e)}\n\n"
-                    f"دستی اجرا کنید (Command Prompt as Admin):\n"
-                    f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
-                )
+                self.show_manual_firewall_instructions(port)
+        else:
+            self.show_manual_firewall_instructions(port)
+    
+    def show_manual_firewall_instructions(self, port):
+        """Show manual firewall instructions"""
+        msg = QMessageBox(self)
+        msg.setWindowTitle("🛡️ راهنمای دستی باز کردن فایروال")
+        msg.setIcon(QMessageBox.Information)
+        msg.setText(f"""
+<b>روش 1: از طریق Windows Defender Firewall GUI</b>
+<ol>
+<li>Windows Defender Firewall را باز کنید</li>
+<li>روی "Advanced settings" کلیک کنید</li>
+<li>در سمت چپ روی "Inbound Rules" کلیک کنید</li>
+<li>در سمت راست روی "New Rule..." کلیک کنید</li>
+<li>گزینه "Port" را انتخاب کنید و Next بزنید</li>
+<li>گزینه "TCP" را انتخاب کنید</li>
+<li>در "Specific local ports" عدد {port} را وارد کنید</li>
+<li>گزینه "Allow the connection" را انتخاب کنید</li>
+<li>تمام Profile ها را انتخاب کنید</li>
+<li>نام "CafeApp" را وارد کنید</li>
+<li>Finish را بزنید</li>
+</ol>
+
+<b>روش 2: از طریق Command Prompt (نیاز به Admin)</b>
+<ol>
+<li>Command Prompt را به عنوان Administrator باز کنید</li>
+<li>دستور زیر را اجرا کنید:</li>
+</ol>
+<code style="background: #f0f0f0; padding: 5px; border-radius: 3px;">
+netsh advfirewall firewall add rule name="CafeApp" dir=in action=allow protocol=TCP localport={port}
+</code>
+
+<b>روش 3: از طریق PowerShell (نیاز به Admin)</b>
+<ol>
+<li>PowerShell را به عنوان Administrator باز کنید</li>
+<li>دستور زیر را اجرا کنید:</li>
+</ol>
+<code style="background: #f0f0f0; padding: 5px; border-radius: 3px;">
+New-NetFirewallRule -DisplayName "CafeApp" -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow
+</code>
+        """)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()

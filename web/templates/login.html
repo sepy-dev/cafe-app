@@ -78,7 +78,21 @@
                 await AuthManager.login(username, password);
                 window.location.href = '/dashboard';
             } catch (error) {
-                errorDiv.textContent = error.message || 'خطا در ورود به سیستم';
+                console.error('Login error:', error);
+                
+                let errorMessage = 'خطا در ورود به سیستم';
+                
+                if (error.message) {
+                    errorMessage = error.message;
+                } else if (error instanceof TypeError && error.message.includes('fetch')) {
+                    errorMessage = 'خطا در اتصال به سرور. لطفاً مطمئن شوید سرور در حال اجرا است.';
+                } else if (error.message && error.message.includes('401')) {
+                    errorMessage = 'نام کاربری یا رمز عبور اشتباه است';
+                } else if (error.message && error.message.includes('Network')) {
+                    errorMessage = 'خطا در شبکه. لطفاً اتصال اینترنت را بررسی کنید.';
+                }
+                
+                errorDiv.textContent = errorMessage;
                 errorDiv.classList.remove('hidden');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'ورود به سیستم';
