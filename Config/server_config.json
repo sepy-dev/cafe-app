@@ -1,0 +1,9 @@
+{
+  "host": "0.0.0.0",
+  "port": 8080,
+  "enabled": false,
+  "auto_start": false,
+  "secret_key": "551189972547d32e8e1efecd63f76f3f40fb3637ce4e3c9deb8425134795b927",
+  "token_expire_minutes": 480,
+  "allow_registration": false
+}

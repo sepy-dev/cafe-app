@@ -9,19 +9,30 @@
 <body>
     <nav class="navbar">
         <div class="navbar-content">
-            <a href="/dashboard" class="navbar-brand">☕ سیستم مدیریت کافه</a>
-            <ul class="navbar-menu">
-                <li><a href="/dashboard">داشبورد</a></li>
-                <li><a href="/new-order" class="active">سفارش جدید</a></li>
-                <li><a href="/orders">مدیریت سفارشات</a></li>
-                <li id="admin-menu-item" style="display: none;"><a href="/admin">مدیریت کاربران</a></li>
-            </ul>
+            <a href="/dashboard" class="navbar-brand">☕ کافه</a>
             <div class="navbar-user">
                 <span class="user-badge" id="user-info">کاربر</span>
                 <a href="#" id="logout-btn" class="btn btn-secondary btn-sm">خروج</a>
             </div>
+            <button class="navbar-toggle" id="navbar-toggle" aria-label="منوی ناوبری">
+                ☰
+            </button>
+            <ul class="navbar-menu mobile-hidden" id="navbar-menu">
+                <li><a href="/dashboard">📊 داشبورد</a></li>
+                <li><a href="/new-order" class="active">➕ سفارش جدید</a></li>
+                <li><a href="/orders">📋 مدیریت سفارشات</a></li>
+                <li id="admin-menu-item" style="display: none;"><a href="/admin">👥 مدیریت کاربران</a></li>
+            </ul>
         </div>
     </nav>
+    
+    <!-- Floating Cart Button for Mobile -->
+    <div class="fab-container" id="fab-container">
+        <button class="fab" id="fab-cart" aria-label="نمایش سبد خرید">
+            🛒
+            <span class="fab-badge" id="fab-badge">0</span>
+        </button>
+    </div>
     
     <div class="container-fluid">
         <div style="margin: 30px 0;">
@@ -29,15 +40,15 @@
             <p style="color: var(--text-secondary);">محصولات مورد نظر را انتخاب کنید</p>
         </div>
         
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;" id="main-grid">
             <!-- Products Section -->
-            <div>
+            <div id="products-section">
                 <!-- Category Filter -->
                 <div class="card">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" for="category-filter">دسته‌بندی:</label>
+                        <label class="form-label" for="category-filter">🏷️ دسته‌بندی:</label>
                         <select id="category-filter" class="form-select">
-                            <option value="all">همه</option>
+                            <option value="all">📋 همه محصولات</option>
                         </select>
                     </div>
                 </div>
@@ -52,8 +63,8 @@
             </div>
             
             <!-- Cart Section -->
-            <div>
-                <div class="order-cart" style="position: sticky; top: 80px;">
+            <div id="cart-section">
+                <div class="order-cart" style="position: sticky; top: 80px;" id="order-cart">
                     <h3 style="margin-bottom: 20px; color: var(--primary-color);">🛒 سبد سفارش</h3>
                     
                     <!-- Table Number -->
@@ -118,6 +129,59 @@
         if (user && user.role === 'admin') {
             document.getElementById('admin-menu-item').style.display = 'block';
         }
+        
+        // Mobile navigation toggle
+        document.getElementById('navbar-toggle').addEventListener('click', () => {
+            const menu = document.getElementById('navbar-menu');
+            menu.classList.toggle('mobile-hidden');
+        });
+        
+        // Close menu when clicking a link
+        document.querySelectorAll('.navbar-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('navbar-menu').classList.add('mobile-hidden');
+            });
+        });
+        
+        // FAB cart button functionality
+        const fabCart = document.getElementById('fab-cart');
+        const cartSection = document.getElementById('cart-section');
+        let cartVisible = false;
+        
+        fabCart.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                cartSection.style.display = cartVisible ? 'none' : 'block';
+                cartVisible = !cartVisible;
+                
+                // Scroll to cart
+                if (cartVisible) {
+                    cartSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        });
+        
+        // Hide cart by default on mobile
+        if (window.innerWidth <= 768) {
+            cartSection.style.display = 'none';
+        }
+        
+        // Show/hide FAB based on screen size
+        function handleResize() {
+            const fabContainer = document.getElementById('fab-container');
+            if (window.innerWidth <= 768) {
+                fabContainer.style.display = 'block';
+                if (!cartVisible) {
+                    cartSection.style.display = 'none';
+                }
+            } else {
+                fabContainer.style.display = 'none';
+                cartSection.style.display = 'block';
+                cartVisible = false;
+            }
+        }
+        
+        window.addEventListener('resize', handleResize);
+        handleResize();
         
         // Cart state
         const cart = [];
@@ -222,6 +286,12 @@
         // Render cart
         function renderCart() {
             const container = document.getElementById('cart-items');
+            
+            // Update FAB badge
+            const fabBadge = document.getElementById('fab-badge');
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            fabBadge.textContent = totalItems;
+            fabBadge.style.display = totalItems > 0 ? 'flex' : 'none';
             
             if (cart.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px 20px;">سبد خالی است<br>محصولی را انتخاب کنید</p>';

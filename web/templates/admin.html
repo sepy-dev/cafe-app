@@ -9,17 +9,20 @@
 <body>
     <nav class="navbar">
         <div class="navbar-content">
-            <a href="/dashboard" class="navbar-brand">☕ سیستم مدیریت کافه</a>
-            <ul class="navbar-menu">
-                <li><a href="/dashboard">داشبورد</a></li>
-                <li><a href="/new-order">سفارش جدید</a></li>
-                <li><a href="/orders">مدیریت سفارشات</a></li>
-                <li><a href="/admin" class="active">مدیریت کاربران</a></li>
-            </ul>
+            <a href="/dashboard" class="navbar-brand">☕ کافه</a>
             <div class="navbar-user">
                 <span class="user-badge" id="user-info">کاربر</span>
                 <a href="#" id="logout-btn" class="btn btn-secondary btn-sm">خروج</a>
             </div>
+            <button class="navbar-toggle" id="navbar-toggle" aria-label="منوی ناوبری">
+                ☰
+            </button>
+            <ul class="navbar-menu mobile-hidden" id="navbar-menu">
+                <li><a href="/dashboard">📊 داشبورد</a></li>
+                <li><a href="/new-order">➕ سفارش جدید</a></li>
+                <li><a href="/orders">📋 مدیریت سفارشات</a></li>
+                <li><a href="/admin" class="active">👥 مدیریت کاربران</a></li>
+            </ul>
         </div>
     </nav>
     
@@ -102,6 +105,19 @@
             alert('این صفحه فقط برای مدیران قابل دسترسی است');
             window.location.href = '/dashboard';
         }
+        
+        // Mobile navigation toggle
+        document.getElementById('navbar-toggle').addEventListener('click', () => {
+            const menu = document.getElementById('navbar-menu');
+            menu.classList.toggle('mobile-hidden');
+        });
+        
+        // Close menu when clicking a link
+        document.querySelectorAll('.navbar-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('navbar-menu').classList.add('mobile-hidden');
+            });
+        });
         
         // Users Manager
         const usersManager = new UsersManager();
