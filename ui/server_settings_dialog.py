@@ -630,33 +630,78 @@ class ServerSettingsDialog(QDialog):
             try:
                 rule_name = f"CafeApp_Port_{port}"
                 
-                # PowerShell command to add firewall rule
-                ps_command = f'''
+                # Create a temporary PowerShell script file
+                import tempfile
+                import os
+                
+                ps_script_content = f'''
 $ruleName = "{rule_name}"
 $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
 if ($existingRule) {{
     Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+    Write-Host "Existing rule removed"
 }}
-New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow -Profile Any
-Write-Host "Firewall rule created successfully"
+try {{
+    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow -Profile Any
+    Write-Host "Firewall rule created successfully!"
+    Write-Host "Port {port} is now open in Windows Firewall"
+}} catch {{
+    Write-Host "Error: $_"
+    Write-Host "Please check if you have administrator privileges"
+}}
+Write-Host ""
+Write-Host "Press any key to close..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 '''
                 
-                # Run PowerShell as administrator
-                result = subprocess.run(
-                    ['powershell', '-Command', 
-                     f'Start-Process powershell -Verb RunAs -Wait -ArgumentList \'-NoExit -Command {ps_command}\''],
-                    capture_output=True,
-                    text=True,
-                    shell=True
-                )
+                # Write script to temp file
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.ps1', delete=False) as f:
+                    f.write(ps_script_content)
+                    script_path = f.name
                 
-                QMessageBox.information(
-                    self,
-                    "✅ دستور اجرا شد",
-                    f"دستور فایروال اجرا شد.\n\n"
-                    f"اگر پنجره PowerShell با دسترسی Admin باز شد و خطایی نداشت، پورت {port} باز شده است.\n\n"
-                    "اکنون سرور را راه‌اندازی کنید و با گوشی تست کنید."
-                )
+                try:
+                    # Run PowerShell as administrator using Start-Process
+                    # Use -File instead of -Command for better reliability
+                    cmd = f'powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList \'-NoExit -File \\\"{script_path}\\\"\'"'
+                    
+                    # Execute using shell=True for proper UAC elevation
+                    process = subprocess.Popen(
+                        cmd,
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE
+                    )
+                    
+                    # Don't wait for process, let it run independently
+                    QMessageBox.information(
+                        self,
+                        "✅ پنجره Admin باز شد",
+                        f"پنجره PowerShell با دسترسی Administrator باید باز شده باشد.\n\n"
+                        f"اگر پنجره باز نشد:\n"
+                        f"1. دستی Command Prompt را به عنوان Admin باز کنید\n"
+                        f"2. دستور زیر را اجرا کنید:\n\n"
+                        f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}\n\n"
+                        f"یا از PowerShell:\n"
+                        f"New-NetFirewallRule -DisplayName \"CafeApp\" -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow"
+                    )
+                    
+                except Exception as e:
+                    # Clean up temp file
+                    try:
+                        os.unlink(script_path)
+                    except:
+                        pass
+                    
+                    # Show manual instructions
+                    QMessageBox.warning(
+                        self,
+                        "⚠️ خطا",
+                        f"خطا در اجرای خودکار:\n{str(e)}\n\n"
+                        f"لطفاً دستی انجام دهید:\n\n"
+                        f"1. Command Prompt را به عنوان Administrator باز کنید\n"
+                        f"2. دستور زیر را اجرا کنید:\n\n"
+                        f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
+                    )
                 
             except Exception as e:
                 # Show manual instructions if automatic method fails
