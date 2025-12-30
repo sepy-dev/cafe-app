@@ -7,7 +7,7 @@ import io
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QGroupBox, QSpinBox, QCheckBox,
-    QMessageBox, QFrame, QWidget
+    QMessageBox, QFrame, QScrollArea, QWidget
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QImage
@@ -32,8 +32,13 @@ class ServerSettingsDialog(QDialog):
         self.config_manager = get_config_manager()
         
         self.setWindowTitle("⚙️ تنظیمات سرور وب")
-        self.setFixedSize(750, 850)
-        self.setStyleSheet("background-color: #f0f0f0;")
+        self.setMinimumSize(500, 600)
+        self.resize(550, 700)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #f5f5f5;
+            }
+        """)
         
         self.setup_ui()
         self.load_settings()
@@ -43,355 +48,293 @@ class ServerSettingsDialog(QDialog):
     def setup_ui(self):
         """Setup the user interface"""
         main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(15)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Scroll Area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        
+        # Content Widget
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setSpacing(16)
+        content_layout.setContentsMargins(20, 20, 20, 20)
         
         # ==================== Server Status Section ====================
-        status_group = QGroupBox("📊 وضعیت سرور")
-        status_group.setStyleSheet("""
-            QGroupBox {
-                font-size: 14px;
-                font-weight: bold;
-                border: 2px solid #ccc;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
-                background-color: white;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 15px;
-                padding: 0 10px;
-            }
-        """)
-        status_layout = QVBoxLayout(status_group)
-        status_layout.setSpacing(15)
-        status_layout.setContentsMargins(15, 25, 15, 15)
+        status_group = self.create_group("📊 وضعیت سرور")
+        status_layout = QVBoxLayout()
+        status_layout.setSpacing(12)
         
         # Status Label
         self.status_label = QLabel("⏹️ سرور متوقف است")
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setMinimumHeight(50)
-        self.status_label.setStyleSheet("""
-            QLabel {
-                font-size: 18px;
-                font-weight: bold;
-                color: #dc3545;
-                background-color: #f8d7da;
-                border-radius: 8px;
-                padding: 15px;
-            }
-        """)
+        self.update_status_style(False)
         status_layout.addWidget(self.status_label)
         
         # URL Labels
-        url_frame = QFrame()
-        url_frame.setStyleSheet("background-color: #f8f9fa; border-radius: 8px; padding: 10px;")
-        url_layout = QVBoxLayout(url_frame)
-        url_layout.setSpacing(10)
-        url_layout.setContentsMargins(15, 15, 15, 15)
-        
         self.url_label = QLabel("📍 آدرس محلی: -")
-        self.url_label.setStyleSheet("""
-            QLabel {
-                font-size: 14px;
-                color: #333;
-                background-color: white;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                padding: 10px 15px;
-            }
-        """)
+        self.url_label.setStyleSheet(self.get_url_label_style())
         self.url_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        url_layout.addWidget(self.url_label)
+        self.url_label.setWordWrap(True)
+        status_layout.addWidget(self.url_label)
         
         self.network_url_label = QLabel("🌐 آدرس شبکه: -")
-        self.network_url_label.setStyleSheet("""
-            QLabel {
-                font-size: 14px;
-                color: #333;
+        self.network_url_label.setStyleSheet(self.get_url_label_style())
+        self.network_url_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.network_url_label.setWordWrap(True)
+        status_layout.addWidget(self.network_url_label)
+        
+        # QR Code Frame
+        self.qr_frame = QFrame()
+        self.qr_frame.setStyleSheet("""
+            QFrame {
                 background-color: white;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                padding: 10px 15px;
+                border: 2px solid #28a745;
+                border-radius: 12px;
             }
         """)
-        self.network_url_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        url_layout.addWidget(self.network_url_label)
-        
-        status_layout.addWidget(url_frame)
-        
-        # QR Code
-        self.qr_frame = QFrame()
-        self.qr_frame.setStyleSheet("background-color: white; border-radius: 8px;")
         self.qr_frame.setVisible(False)
         qr_layout = QVBoxLayout(self.qr_frame)
-        qr_layout.setContentsMargins(15, 15, 15, 15)
-        qr_layout.setSpacing(10)
+        qr_layout.setContentsMargins(20, 16, 20, 20)
+        qr_layout.setSpacing(12)
         
-        qr_title = QLabel("📱 اسکن با گوشی:")
-        qr_title.setStyleSheet("font-size: 13px; font-weight: bold; color: #333; background: transparent;")
+        qr_title = QLabel("📱 QR Code - اسکن با موبایل")
+        qr_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #28a745; background: transparent; border: none;")
         qr_title.setAlignment(Qt.AlignCenter)
         qr_layout.addWidget(qr_title)
         
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignCenter)
-        self.qr_label.setMinimumSize(180, 180)
-        self.qr_label.setMaximumSize(180, 180)
-        self.qr_label.setStyleSheet("background-color: white; border: 2px solid #ddd; border-radius: 8px;")
+        self.qr_label.setFixedSize(220, 220)
+        self.qr_label.setStyleSheet("background-color: white; border: none;")
         qr_layout.addWidget(self.qr_label, 0, Qt.AlignCenter)
         
         status_layout.addWidget(self.qr_frame)
         
         # Control Buttons
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(10)
+        btn_layout.setSpacing(8)
         
-        self.start_btn = QPushButton("▶️ راه‌اندازی")
-        self.start_btn.setMinimumHeight(45)
-        self.start_btn.setCursor(Qt.PointingHandCursor)
-        self.start_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                border-radius: 8px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #218838; }
-            QPushButton:disabled { background-color: #aaa; }
-        """)
+        self.start_btn = self.create_button("▶️ راه‌اندازی", "#28a745", "#1e7e34")
         btn_layout.addWidget(self.start_btn)
         
-        self.stop_btn = QPushButton("⏹️ توقف")
-        self.stop_btn.setMinimumHeight(45)
-        self.stop_btn.setCursor(Qt.PointingHandCursor)
-        self.stop_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #dc3545;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                border-radius: 8px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #c82333; }
-            QPushButton:disabled { background-color: #aaa; }
-        """)
+        self.stop_btn = self.create_button("⏹️ توقف", "#dc3545", "#c82333")
         btn_layout.addWidget(self.stop_btn)
         
-        self.restart_btn = QPushButton("🔄 راه‌اندازی مجدد")
-        self.restart_btn.setMinimumHeight(45)
-        self.restart_btn.setCursor(Qt.PointingHandCursor)
-        self.restart_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #fd7e14;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                border-radius: 8px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #e96b02; }
-            QPushButton:disabled { background-color: #aaa; }
-        """)
+        self.restart_btn = self.create_button("🔄 ریستارت", "#fd7e14", "#e96b02")
         btn_layout.addWidget(self.restart_btn)
         
         status_layout.addLayout(btn_layout)
         
         # Firewall Button
-        self.firewall_btn = QPushButton("🛡️ باز کردن فایروال (برای دسترسی از شبکه)")
-        self.firewall_btn.setMinimumHeight(45)
-        self.firewall_btn.setCursor(Qt.PointingHandCursor)
-        self.firewall_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #17a2b8;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                border-radius: 8px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #138496; }
-        """)
+        self.firewall_btn = self.create_button("🛡️ باز کردن فایروال ویندوز", "#17a2b8", "#138496")
         status_layout.addWidget(self.firewall_btn)
         
-        main_layout.addWidget(status_group)
+        status_group.layout().addLayout(status_layout)
+        content_layout.addWidget(status_group)
         
         # ==================== Settings Section ====================
-        settings_group = QGroupBox("🔧 تنظیمات")
-        settings_group.setStyleSheet("""
-            QGroupBox {
-                font-size: 14px;
-                font-weight: bold;
-                border: 2px solid #ccc;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding-top: 10px;
-                background-color: white;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 15px;
-                padding: 0 10px;
-            }
-        """)
-        settings_layout = QVBoxLayout(settings_group)
-        settings_layout.setSpacing(15)
-        settings_layout.setContentsMargins(15, 25, 15, 15)
+        settings_group = self.create_group("🔧 تنظیمات")
+        settings_layout = QVBoxLayout()
+        settings_layout.setSpacing(12)
         
         # Host
-        host_row = QHBoxLayout()
-        host_label = QLabel("🌐 آدرس میزبان:")
-        host_label.setStyleSheet("font-size: 13px; font-weight: bold; min-width: 140px;")
-        host_row.addWidget(host_label)
+        host_layout = QHBoxLayout()
+        host_label = QLabel("🌐 میزبان:")
+        host_label.setStyleSheet("font-size: 13px; font-weight: bold; min-width: 100px;")
+        host_layout.addWidget(host_label)
         
         self.host_input = QLineEdit()
-        self.host_input.setPlaceholderText("0.0.0.0 برای دسترسی از شبکه")
-        self.host_input.setMinimumHeight(40)
-        self.host_input.setStyleSheet("""
-            QLineEdit {
-                font-size: 14px;
-                padding: 8px 12px;
-                border: 2px solid #ddd;
-                border-radius: 6px;
-                background-color: white;
-            }
-            QLineEdit:focus { border-color: #007bff; }
-        """)
-        host_row.addWidget(self.host_input, 1)
-        settings_layout.addLayout(host_row)
+        self.host_input.setPlaceholderText("0.0.0.0")
+        self.host_input.setStyleSheet(self.get_input_style())
+        host_layout.addWidget(self.host_input, 1)
+        settings_layout.addLayout(host_layout)
         
         # Port
-        port_row = QHBoxLayout()
+        port_layout = QHBoxLayout()
         port_label = QLabel("🔌 پورت:")
-        port_label.setStyleSheet("font-size: 13px; font-weight: bold; min-width: 140px;")
-        port_row.addWidget(port_label)
+        port_label.setStyleSheet("font-size: 13px; font-weight: bold; min-width: 100px;")
+        port_layout.addWidget(port_label)
         
         self.port_input = QSpinBox()
         self.port_input.setRange(1024, 65535)
         self.port_input.setValue(8080)
-        self.port_input.setMinimumHeight(40)
-        self.port_input.setMinimumWidth(120)
-        self.port_input.setStyleSheet("""
-            QSpinBox {
-                font-size: 14px;
-                padding: 8px 12px;
-                border: 2px solid #ddd;
-                border-radius: 6px;
-                background-color: white;
-            }
-            QSpinBox:focus { border-color: #007bff; }
-        """)
-        port_row.addWidget(self.port_input)
-        port_row.addStretch()
-        settings_layout.addLayout(port_row)
+        self.port_input.setStyleSheet(self.get_input_style())
+        self.port_input.setMinimumWidth(100)
+        port_layout.addWidget(self.port_input)
+        port_layout.addStretch()
+        settings_layout.addLayout(port_layout)
         
         # Auto-start
-        autostart_row = QHBoxLayout()
-        autostart_label = QLabel("🚀 راه‌اندازی خودکار:")
-        autostart_label.setStyleSheet("font-size: 13px; font-weight: bold; min-width: 140px;")
-        autostart_row.addWidget(autostart_label)
-        
-        self.autostart_checkbox = QCheckBox("راه‌اندازی خودکار با اجرای برنامه")
-        self.autostart_checkbox.setStyleSheet("font-size: 13px;")
-        autostart_row.addWidget(self.autostart_checkbox)
-        autostart_row.addStretch()
-        settings_layout.addLayout(autostart_row)
+        self.autostart_checkbox = QCheckBox("🚀 راه‌اندازی خودکار با اجرای برنامه")
+        self.autostart_checkbox.setStyleSheet("font-size: 13px; font-weight: bold; padding: 8px 0;")
+        settings_layout.addWidget(self.autostart_checkbox)
         
         # Token expiry
-        token_row = QHBoxLayout()
+        token_layout = QHBoxLayout()
         token_label = QLabel("⏱️ اعتبار توکن:")
-        token_label.setStyleSheet("font-size: 13px; font-weight: bold; min-width: 140px;")
-        token_row.addWidget(token_label)
+        token_label.setStyleSheet("font-size: 13px; font-weight: bold; min-width: 100px;")
+        token_layout.addWidget(token_label)
         
         self.token_expire_input = QSpinBox()
         self.token_expire_input.setRange(30, 1440)
         self.token_expire_input.setValue(480)
         self.token_expire_input.setSuffix(" دقیقه")
-        self.token_expire_input.setMinimumHeight(40)
-        self.token_expire_input.setMinimumWidth(140)
-        self.token_expire_input.setStyleSheet("""
-            QSpinBox {
-                font-size: 14px;
-                padding: 8px 12px;
-                border: 2px solid #ddd;
-                border-radius: 6px;
-                background-color: white;
-            }
-            QSpinBox:focus { border-color: #007bff; }
-        """)
-        token_row.addWidget(self.token_expire_input)
-        token_row.addStretch()
-        settings_layout.addLayout(token_row)
+        self.token_expire_input.setStyleSheet(self.get_input_style())
+        self.token_expire_input.setMinimumWidth(130)
+        token_layout.addWidget(self.token_expire_input)
+        token_layout.addStretch()
+        settings_layout.addLayout(token_layout)
         
-        main_layout.addWidget(settings_group)
+        settings_group.layout().addLayout(settings_layout)
+        content_layout.addWidget(settings_group)
         
         # ==================== Info Section ====================
         info_frame = QFrame()
         info_frame.setStyleSheet("""
             QFrame {
-                background-color: #fff3cd;
-                border: 2px solid #ffc107;
-                border-radius: 8px;
-                padding: 10px;
+                background-color: #e7f3ff;
+                border: 2px solid #007bff;
+                border-radius: 10px;
             }
         """)
         info_layout = QVBoxLayout(info_frame)
-        info_layout.setContentsMargins(15, 15, 15, 15)
+        info_layout.setContentsMargins(16, 14, 16, 14)
         
-        info_label = QLabel("""
-<div style="font-size: 12px; line-height: 1.6;">
-<b>📌 راهنما:</b><br>
-• برای دسترسی از شبکه، ابتدا روی "باز کردن فایروال" کلیک کنید<br>
-• آدرس Host را روی <b>0.0.0.0</b> تنظیم کنید<br>
-• <b>کاربر پیش‌فرض:</b> admin / admin123
-</div>
-        """)
+        info_text = """<div style="font-size: 12px; line-height: 1.8; color: #004085;">
+<b>💡 راهنما:</b><br>
+• برای دسترسی از گوشی، Host را <b>0.0.0.0</b> بگذارید<br>
+• اگر از گوشی دسترسی ندارید، روی "باز کردن فایروال" بزنید<br>
+• <b>ورود:</b> admin / admin123
+</div>"""
+        info_label = QLabel(info_text)
         info_label.setWordWrap(True)
-        info_label.setStyleSheet("background: transparent; color: #856404;")
+        info_label.setStyleSheet("background: transparent; border: none;")
         info_layout.addWidget(info_label)
         
-        main_layout.addWidget(info_frame)
+        content_layout.addWidget(info_frame)
+        
+        # Add stretch
+        content_layout.addStretch()
+        
+        scroll.setWidget(content)
+        main_layout.addWidget(scroll, 1)
         
         # ==================== Bottom Buttons ====================
-        bottom_layout = QHBoxLayout()
-        bottom_layout.setSpacing(15)
+        bottom_frame = QFrame()
+        bottom_frame.setStyleSheet("background-color: white; border-top: 1px solid #ddd;")
+        bottom_layout = QHBoxLayout(bottom_frame)
+        bottom_layout.setContentsMargins(20, 16, 20, 16)
+        bottom_layout.setSpacing(12)
         
-        self.save_btn = QPushButton("💾 ذخیره تنظیمات")
-        self.save_btn.setMinimumHeight(50)
-        self.save_btn.setCursor(Qt.PointingHandCursor)
-        self.save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #007bff;
-                color: white;
-                font-size: 14px;
-                font-weight: bold;
-                border-radius: 8px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #0056b3; }
-        """)
+        self.save_btn = self.create_button("💾 ذخیره تنظیمات", "#007bff", "#0056b3")
         bottom_layout.addWidget(self.save_btn, 1)
         
-        self.close_btn = QPushButton("❌ بستن")
-        self.close_btn.setMinimumHeight(50)
-        self.close_btn.setCursor(Qt.PointingHandCursor)
-        self.close_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
+        self.close_btn = self.create_button("❌ بستن", "#6c757d", "#5a6268")
+        bottom_layout.addWidget(self.close_btn, 1)
+        
+        main_layout.addWidget(bottom_frame)
+    
+    def create_group(self, title):
+        """Create a styled group box"""
+        group = QGroupBox(title)
+        group.setStyleSheet("""
+            QGroupBox {
                 font-size: 14px;
+                font-weight: bold;
+                color: #333;
+                border: 2px solid #ddd;
+                border-radius: 10px;
+                margin-top: 12px;
+                padding-top: 8px;
+                background-color: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 14px;
+                padding: 0 8px;
+                background-color: white;
+            }
+        """)
+        layout = QVBoxLayout(group)
+        layout.setContentsMargins(16, 24, 16, 16)
+        layout.setSpacing(12)
+        return group
+    
+    def create_button(self, text, bg_color, hover_color):
+        """Create a styled button"""
+        btn = QPushButton(text)
+        btn.setMinimumHeight(44)
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg_color};
+                color: white;
+                font-size: 13px;
                 font-weight: bold;
                 border-radius: 8px;
                 border: none;
-            }
-            QPushButton:hover { background-color: #5a6268; }
+                padding: 0 16px;
+            }}
+            QPushButton:hover {{ background-color: {hover_color}; }}
+            QPushButton:disabled {{ background-color: #ccc; color: #888; }}
         """)
-        bottom_layout.addWidget(self.close_btn, 1)
-        
-        main_layout.addLayout(bottom_layout)
+        return btn
+    
+    def get_input_style(self):
+        """Get style for input widgets"""
+        return """
+            font-size: 13px;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            min-height: 20px;
+        """
+    
+    def get_url_label_style(self):
+        """Get style for URL labels"""
+        return """
+            QLabel {
+                font-size: 13px;
+                color: #333;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 12px 14px;
+            }
+        """
+    
+    def update_status_style(self, is_running):
+        """Update status label style"""
+        if is_running:
+            self.status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #155724;
+                    background-color: #d4edda;
+                    border: 2px solid #28a745;
+                    border-radius: 8px;
+                    padding: 12px;
+                }
+            """)
+        else:
+            self.status_label.setStyleSheet("""
+                QLabel {
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: #721c24;
+                    background-color: #f8d7da;
+                    border: 2px solid #dc3545;
+                    border-radius: 8px;
+                    padding: 12px;
+                }
+            """)
     
     def connect_signals(self):
         """Connect signals to slots"""
@@ -425,7 +368,7 @@ class ServerSettingsDialog(QDialog):
                 auto_start=self.autostart_checkbox.isChecked(),
                 token_expire_minutes=self.token_expire_input.value()
             )
-            QMessageBox.information(self, "✅ موفق", "تنظیمات ذخیره شد.\nبرای اعمال، سرور را مجدداً راه‌اندازی کنید.")
+            QMessageBox.information(self, "✅ موفق", "تنظیمات ذخیره شد.\nبرای اعمال، سرور را ریستارت کنید.")
         except Exception as e:
             QMessageBox.critical(self, "❌ خطا", f"خطا در ذخیره:\n{str(e)}")
     
@@ -442,7 +385,7 @@ class ServerSettingsDialog(QDialog):
         if not self.server_runner.is_running:
             return
         self.stop_btn.setEnabled(False)
-        self.stop_btn.setText("⏳ در حال توقف...")
+        self.stop_btn.setText("⏳ توقف...")
         self.server_runner.stop()
     
     def restart_server(self):
@@ -451,46 +394,39 @@ class ServerSettingsDialog(QDialog):
             self.start_server()
         else:
             self.restart_btn.setEnabled(False)
-            self.restart_btn.setText("⏳ در حال راه‌اندازی...")
+            self.restart_btn.setText("⏳ ریستارت...")
             self.server_runner.restart()
     
     def update_server_status(self):
         """Update server status display"""
-        if self.server_runner.is_running:
+        is_running = self.server_runner.is_running
+        
+        if is_running:
             self.status_label.setText("✅ سرور در حال اجراست")
-            self.status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #155724;
-                    background-color: #d4edda;
-                    border-radius: 8px;
-                    padding: 15px;
-                }
-            """)
+            self.update_status_style(True)
             
             urls = self.server_runner.get_access_urls()
             self.url_label.setText(f"📍 آدرس محلی: {urls['local']}")
             self.url_label.setStyleSheet("""
                 QLabel {
-                    font-size: 14px;
+                    font-size: 13px;
                     color: #155724;
-                    background-color: #c3e6cb;
+                    background-color: #d4edda;
                     border: 1px solid #28a745;
-                    border-radius: 5px;
-                    padding: 10px 15px;
+                    border-radius: 8px;
+                    padding: 12px 14px;
                 }
             """)
             
             self.network_url_label.setText(f"🌐 آدرس شبکه: {urls['network']}")
             self.network_url_label.setStyleSheet("""
                 QLabel {
-                    font-size: 14px;
+                    font-size: 13px;
                     color: #155724;
-                    background-color: #c3e6cb;
+                    background-color: #d4edda;
                     border: 1px solid #28a745;
-                    border-radius: 5px;
-                    padding: 10px 15px;
+                    border-radius: 8px;
+                    padding: 12px 14px;
                 }
             """)
             
@@ -499,53 +435,26 @@ class ServerSettingsDialog(QDialog):
             self.stop_btn.setEnabled(True)
             self.stop_btn.setText("⏹️ توقف")
             self.restart_btn.setEnabled(True)
-            self.restart_btn.setText("🔄 راه‌اندازی مجدد")
+            self.restart_btn.setText("🔄 ریستارت")
             
             # Show QR code
             self.update_qr_code()
         else:
             self.status_label.setText("⏹️ سرور متوقف است")
-            self.status_label.setStyleSheet("""
-                QLabel {
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #721c24;
-                    background-color: #f8d7da;
-                    border-radius: 8px;
-                    padding: 15px;
-                }
-            """)
+            self.update_status_style(False)
             
             self.url_label.setText("📍 آدرس محلی: -")
-            self.url_label.setStyleSheet("""
-                QLabel {
-                    font-size: 14px;
-                    color: #333;
-                    background-color: white;
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                    padding: 10px 15px;
-                }
-            """)
+            self.url_label.setStyleSheet(self.get_url_label_style())
             
             self.network_url_label.setText("🌐 آدرس شبکه: -")
-            self.network_url_label.setStyleSheet("""
-                QLabel {
-                    font-size: 14px;
-                    color: #333;
-                    background-color: white;
-                    border: 1px solid #ddd;
-                    border-radius: 5px;
-                    padding: 10px 15px;
-                }
-            """)
+            self.network_url_label.setStyleSheet(self.get_url_label_style())
             
             self.start_btn.setEnabled(True)
             self.start_btn.setText("▶️ راه‌اندازی")
             self.stop_btn.setEnabled(False)
             self.stop_btn.setText("⏹️ توقف")
             self.restart_btn.setEnabled(False)
-            self.restart_btn.setText("🔄 راه‌اندازی مجدد")
+            self.restart_btn.setText("🔄 ریستارت")
             
             # Hide QR code
             self.qr_frame.setVisible(False)
@@ -555,9 +464,9 @@ class ServerSettingsDialog(QDialog):
         self.update_server_status()
         QMessageBox.information(
             self, "✅ سرور راه‌اندازی شد",
-            f"آدرس محلی: http://127.0.0.1:{port}\n"
-            f"آدرس شبکه: http://{host}:{port}\n\n"
-            "اگر از گوشی دسترسی ندارید، روی 'باز کردن فایروال' کلیک کنید."
+            f"آدرس: http://{host}:{port}\n\n"
+            "برای دسترسی از گوشی، QR Code را اسکن کنید.\n"
+            "اگر کار نکرد، روی 'باز کردن فایروال' بزنید."
         )
     
     def on_server_stopped(self):
@@ -567,7 +476,7 @@ class ServerSettingsDialog(QDialog):
     def on_server_error(self, error):
         """Called when server error occurs"""
         self.update_server_status()
-        QMessageBox.critical(self, "❌ خطای سرور", f"خطا:\n{error}")
+        QMessageBox.critical(self, "❌ خطا", f"خطای سرور:\n{error}")
     
     def on_status_changed(self, status):
         """Called when server status changes"""
@@ -578,7 +487,12 @@ class ServerSettingsDialog(QDialog):
         if not HAS_QRCODE:
             return None
         try:
-            qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=5, border=2)
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                box_size=8,
+                border=2
+            )
             qr.add_data(url)
             qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
@@ -590,7 +504,7 @@ class ServerSettingsDialog(QDialog):
             qimage = QImage()
             qimage.loadFromData(buffer.getvalue())
             pixmap = QPixmap.fromImage(qimage)
-            return pixmap.scaled(160, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            return pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         except Exception as e:
             print(f"QR Error: {e}")
             return None
@@ -604,7 +518,7 @@ class ServerSettingsDialog(QDialog):
         urls = self.server_runner.get_access_urls()
         network_url = urls.get('network', '')
         
-        if network_url:
+        if network_url and network_url != '-':
             pixmap = self.generate_qr_code(network_url)
             if pixmap:
                 self.qr_label.setPixmap(pixmap)
@@ -614,108 +528,61 @@ class ServerSettingsDialog(QDialog):
         self.qr_frame.setVisible(False)
     
     def open_firewall(self):
-        """Open Windows Firewall for the server port (requires Admin)"""
+        """Open Windows Firewall for the server port"""
         port = self.port_input.value()
         
         reply = QMessageBox.question(
-            self, "🛡️ باز کردن فایروال",
-            f"آیا می‌خواهید پورت {port} را در فایروال ویندوز باز کنید؟\n\n"
-            "این عملیات نیاز به دسترسی Administrator دارد.\n"
-            "پس از تأیید، یک پنجره UAC ظاهر می‌شود که باید تأیید کنید.",
+            self, "🛡️ فایروال",
+            f"پورت {port} در فایروال ویندوز باز شود؟\n\n"
+            "نیاز به دسترسی Administrator دارد.",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.Yes
         )
         
-        if reply == QMessageBox.Yes:
-            try:
-                rule_name = f"CafeApp_Port_{port}"
-                
-                # Create a temporary PowerShell script file
-                import tempfile
-                import os
-                
-                ps_script_content = f'''
+        if reply != QMessageBox.Yes:
+            return
+        
+        try:
+            import tempfile
+            import os
+            
+            rule_name = f"CafeApp_Port_{port}"
+            
+            ps_script = f'''
 $ruleName = "{rule_name}"
 $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
 if ($existingRule) {{
-    Remove-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
-    Write-Host "Existing rule removed"
+    Remove-NetFirewallRule -DisplayName $ruleName
 }}
-try {{
-    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow -Profile Any
-    Write-Host "Firewall rule created successfully!"
-    Write-Host "Port {port} is now open in Windows Firewall"
-}} catch {{
-    Write-Host "Error: $_"
-    Write-Host "Please check if you have administrator privileges"
-}}
+New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow -Profile Any
+Write-Host "Done! Port {port} is now open."
 Write-Host ""
 Write-Host "Press any key to close..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 '''
-                
-                # Write script to temp file
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.ps1', delete=False) as f:
-                    f.write(ps_script_content)
-                    script_path = f.name
-                
-                try:
-                    # Use shell=True with proper command formatting
-                    # This is the most reliable way to trigger UAC
-                    command = f'powershell.exe -Command "Start-Process powershell.exe -Verb RunAs -ArgumentList \'-NoExit\', \'-File\', \'{script_path}\'"'
-                    
-                    # Execute with shell=True to properly trigger UAC
-                    process = subprocess.Popen(
-                        command,
-                        shell=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
-                    )
-                    
-                    # Give it a moment to start
-                    import time
-                    time.sleep(1)
-                    
-                    QMessageBox.information(
-                        self,
-                        "✅ در حال باز کردن پنجره Admin",
-                        f"پنجره PowerShell با دسترسی Administrator باید باز شده باشد.\n\n"
-                        f"⚠️ اگر پنجره UAC ظاهر شد، روی 'Yes' یا 'بله' کلیک کنید.\n\n"
-                        f"در پنجره PowerShell:\n"
-                        f"- اگر پیام 'Firewall rule created successfully!' دیدید، پورت {port} باز شده است.\n"
-                        f"- اگر خطا دیدید، دستورات دستی را در پایین ببینید.\n\n"
-                        f"اگر پنجره باز نشد، دستی انجام دهید:\n"
-                        f"1. Command Prompt را به عنوان Admin باز کنید\n"
-                        f"2. دستور زیر را اجرا کنید:\n\n"
-                        f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
-                    )
-                    
-                except Exception as e:
-                    # Clean up temp file
-                    try:
-                        os.unlink(script_path)
-                    except:
-                        pass
-                    
-                    # Show manual instructions
-                    QMessageBox.warning(
-                        self,
-                        "⚠️ خطا",
-                        f"خطا در اجرای خودکار:\n{str(e)}\n\n"
-                        f"لطفاً دستی انجام دهید:\n\n"
-                        f"1. Command Prompt را به عنوان Administrator باز کنید\n"
-                        f"2. دستور زیر را اجرا کنید:\n\n"
-                        f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
-                    )
-                
-            except Exception as e:
-                # Show manual instructions if automatic method fails
-                QMessageBox.warning(
-                    self,
-                    "⚠️ خطا",
-                    f"خطا در اجرای خودکار:\n{str(e)}\n\n"
-                    f"لطفاً دستی انجام دهید:\n\n"
-                    f"1. Command Prompt را به عنوان Administrator باز کنید\n"
-                    f"2. دستور زیر را اجرا کنید:\n\n"
-                    f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
-                )
+            
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.ps1', delete=False, encoding='utf-8') as f:
+                f.write(ps_script)
+                script_path = f.name
+            
+            command = f'powershell.exe -Command "Start-Process powershell.exe -Verb RunAs -ArgumentList \'-NoExit\', \'-File\', \'{script_path}\'"'
+            
+            subprocess.Popen(command, shell=True)
+            
+            QMessageBox.information(
+                self, "✅ در حال اجرا",
+                f"پنجره PowerShell با دسترسی Admin باید باز شود.\n\n"
+                f"اگر پنجره UAC ظاهر شد، روی Yes بزنید.\n\n"
+                f"اگر پنجره باز نشد، دستی اجرا کنید:\n"
+                f"1. CMD را به عنوان Admin باز کنید\n"
+                f"2. اجرا کنید:\n\n"
+                f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
+            )
+            
+        except Exception as e:
+            QMessageBox.warning(
+                self, "⚠️ خطا",
+                f"خطا:\n{str(e)}\n\n"
+                f"دستی اجرا کنید:\n"
+                f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
+            )
