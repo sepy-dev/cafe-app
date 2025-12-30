@@ -660,29 +660,40 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                     script_path = f.name
                 
                 try:
-                    # Run PowerShell as administrator using Start-Process
-                    # Use -File instead of -Command for better reliability
-                    cmd = f'powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList \'-NoExit -File \\\"{script_path}\\\"\'"'
+                    # Method 1: Try using subprocess.run with shell=True
+                    # Escape the script path properly for PowerShell
+                    script_path_escaped = script_path.replace('\\', '\\\\')
                     
-                    # Execute using shell=True for proper UAC elevation
+                    # Use Start-Process with -File parameter
+                    ps_cmd = [
+                        'powershell.exe',
+                        '-Command',
+                        f'Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoExit", "-File", "{script_path}"'
+                    ]
+                    
+                    # Execute
                     process = subprocess.Popen(
-                        cmd,
-                        shell=True,
+                        ps_cmd,
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
+                        stderr=subprocess.PIPE,
+                        creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
                     )
                     
-                    # Don't wait for process, let it run independently
+                    # Give it a moment to start
+                    import time
+                    time.sleep(0.5)
+                    
                     QMessageBox.information(
                         self,
                         "✅ پنجره Admin باز شد",
                         f"پنجره PowerShell با دسترسی Administrator باید باز شده باشد.\n\n"
-                        f"اگر پنجره باز نشد:\n"
-                        f"1. دستی Command Prompt را به عنوان Admin باز کنید\n"
+                        f"در پنجره PowerShell:\n"
+                        f"- اگر پیام 'Firewall rule created successfully!' دیدید، پورت {port} باز شده است.\n"
+                        f"- اگر خطا دیدید، دستورات دستی را در پایین ببینید.\n\n"
+                        f"اگر پنجره باز نشد، دستی انجام دهید:\n"
+                        f"1. Command Prompt را به عنوان Admin باز کنید\n"
                         f"2. دستور زیر را اجرا کنید:\n\n"
-                        f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}\n\n"
-                        f"یا از PowerShell:\n"
-                        f"New-NetFirewallRule -DisplayName \"CafeApp\" -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow"
+                        f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
                     )
                     
                 except Exception as e:
