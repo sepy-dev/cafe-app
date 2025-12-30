@@ -1093,10 +1093,21 @@ body {
     box-shadow: var(--shadow);
 }
 
-/* ==================== ORDER SIDEBAR (Mobile Bottom Sheet) ==================== */
+/* ==================== ORDER PAGE LAYOUT ==================== */
+.order-page {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+}
+
+.order-products {
+    min-width: 0;
+}
+
 .order-sidebar {
     position: sticky;
     top: calc(var(--nav-height) + 16px);
+    align-self: start;
 }
 
 /* ==================== UTILITIES ==================== */

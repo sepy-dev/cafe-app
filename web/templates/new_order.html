@@ -46,14 +46,14 @@
             </a>
             <a href="#" class="bottom-nav-item" id="show-cart-btn">
                 <span class="icon">🧾</span>
-                صورتحساب
+                سینی
             </a>
         </div>
     </nav>
     
     <!-- FAB Button - Coffee Cup -->
     <div class="fab-container" id="fab-container">
-        <button class="fab" id="fab-cart" aria-label="صورتحساب" style="background: linear-gradient(135deg, #6F4E37, #4a3423);">
+        <button class="fab" id="fab-cart" aria-label="سینی سفارش" style="background: linear-gradient(135deg, #6F4E37, #4a3423);">
             ☕
             <span class="fab-badge" id="fab-badge" style="display:none;">0</span>
         </button>
@@ -67,8 +67,19 @@
             <!-- Products Section -->
             <div class="order-products">
                 <div class="page-header">
-                    <h1>☕ منوی کافه</h1>
-                    <p>روی آیتم‌ها بزنید تا اضافه شوند</p>
+                    <h1 id="page-title">☕ منوی کافه</h1>
+                    <p id="page-subtitle">روی آیتم‌ها بزنید تا اضافه شوند</p>
+                </div>
+                
+                <!-- Edit Mode Banner -->
+                <div id="edit-banner" class="card" style="display:none;background:linear-gradient(135deg, #FEF3C7, #FDE68A);border:2px solid #F59E0B;padding:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                        <div>
+                            <strong style="color:#92400E;">✏️ حالت ویرایش</strong>
+                            <p style="margin:4px 0 0;font-size:0.85rem;color:#B45309;">سفارش #<span id="edit-order-id"></span></p>
+                        </div>
+                        <button id="cancel-edit-btn" class="btn btn-secondary btn-sm">انصراف</button>
+                    </div>
                 </div>
                 
                 <!-- Category Filter -->
@@ -94,10 +105,10 @@
                     
                     <div class="cart-header">
                         <h3>
-                            ☕ سینی سفارش
+                            ☕ <span id="cart-title">سینی سفارش</span>
                             <span class="cart-count-badge" id="cart-count-badge" style="display:none;">0</span>
                         </h3>
-                        <button class="btn btn-sm btn-secondary" id="close-cart-btn" style="display:none;">✕ بستن</button>
+                        <button class="btn btn-sm btn-secondary" id="close-cart-btn" style="display:none;">✕</button>
                     </div>
                     
                     <!-- Table Number -->
@@ -178,6 +189,13 @@
             }
         }
         
+        // ==================== EDIT MODE ====================
+        let editOrderId = null;
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('edit')) {
+            editOrderId = parseInt(urlParams.get('edit'));
+        }
+        
         // ==================== NAVIGATION ====================
         const navToggle = document.getElementById('navbar-toggle');
         const navMenu = document.getElementById('navbar-menu');
@@ -230,7 +248,6 @@
         showCartBtn.addEventListener('click', (e) => { e.preventDefault(); toggleCart(); });
         closeCartBtn.addEventListener('click', toggleCart);
         
-        // Close cart on resize to desktop
         window.addEventListener('resize', () => {
             if (!isMobile() && isCartVisible) {
                 isCartVisible = false;
@@ -274,12 +291,69 @@
                 await productsManager.loadProducts();
                 populateCategoryFilter();
                 renderProducts();
+                
+                // Load order if in edit mode
+                if (editOrderId) {
+                    await loadOrderForEdit(editOrderId);
+                }
             } catch (error) {
                 console.error('Error loading products:', error);
                 document.getElementById('products-grid').innerHTML = 
                     '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#888;">❌ خطا در بارگذاری منو</div>';
             }
         }
+        
+        async function loadOrderForEdit(orderId) {
+            try {
+                const order = await ordersManager.getOrder(orderId);
+                
+                if (order.status !== 'open') {
+                    showToast('این سفارش قابل ویرایش نیست', 'error');
+                    window.location.href = '/orders';
+                    return;
+                }
+                
+                // Show edit banner
+                document.getElementById('edit-banner').style.display = 'block';
+                document.getElementById('edit-order-id').textContent = orderId;
+                document.getElementById('page-title').textContent = '✏️ ویرایش سفارش';
+                document.getElementById('page-subtitle').textContent = 'آیتم‌ها را تغییر دهید';
+                document.getElementById('cart-title').textContent = 'ویرایش سفارش';
+                document.getElementById('submit-order-btn').innerHTML = '✅ ذخیره تغییرات';
+                
+                // Set table number
+                document.getElementById('table-number').value = order.table_number || '';
+                document.getElementById('discount').value = order.discount || 0;
+                
+                // Load items
+                orderItems.length = 0;
+                for (const item of order.items) {
+                    // Find product by name (since we have product_name in order items)
+                    const product = productsManager.products.find(p => p.name === item.product_name);
+                    if (product) {
+                        orderItems.push({
+                            product: product,
+                            quantity: item.quantity
+                        });
+                    }
+                }
+                
+                renderOrder();
+                
+                // Open cart on mobile in edit mode
+                if (isMobile() && orderItems.length > 0) {
+                    toggleCart();
+                }
+                
+            } catch (error) {
+                console.error('Error loading order:', error);
+                showToast('خطا در بارگذاری سفارش', 'error');
+            }
+        }
+        
+        document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+            window.location.href = '/orders';
+        });
         
         function populateCategoryFilter() {
             const filter = document.getElementById('category-filter');
@@ -314,8 +388,6 @@
                 card.addEventListener('click', () => {
                     const id = parseInt(card.dataset.id);
                     addToOrder(id);
-                    
-                    // Visual feedback
                     card.classList.add('added');
                     setTimeout(() => card.classList.remove('added'), 300);
                 });
@@ -340,8 +412,6 @@
             
             renderOrder();
             showToast('☕ ' + product.name + ' اضافه شد');
-            
-            // Vibrate if supported
             if (navigator.vibrate) navigator.vibrate(50);
         }
         
@@ -361,7 +431,6 @@
             } else {
                 renderOrder();
             }
-            
             if (navigator.vibrate) navigator.vibrate(30);
         }
         
@@ -369,7 +438,6 @@
             const container = document.getElementById('cart-items');
             const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
             
-            // Update badges
             const fabBadge = document.getElementById('fab-badge');
             const cartBadge = document.getElementById('cart-count-badge');
             
@@ -457,25 +525,31 @@
             btn.innerHTML = '⏳ در حال ثبت...';
             
             try {
-                await ordersManager.createOrder(orderData);
-                
-                orderItems.length = 0;
-                renderOrder();
-                document.getElementById('table-number').value = '';
-                document.getElementById('discount').value = '0';
-                
-                if (isMobile() && isCartVisible) toggleCart();
-                
-                showToast('✅ سفارش ثبت شد!');
-                
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-                
+                if (editOrderId) {
+                    // Update existing order
+                    await ordersManager.updateOrder(editOrderId, orderData);
+                    showToast('✅ تغییرات ذخیره شد!');
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    setTimeout(() => {
+                        window.location.href = '/orders';
+                    }, 1000);
+                } else {
+                    // Create new order
+                    await ordersManager.createOrder(orderData);
+                    orderItems.length = 0;
+                    renderOrder();
+                    document.getElementById('table-number').value = '';
+                    document.getElementById('discount').value = '0';
+                    if (isMobile() && isCartVisible) toggleCart();
+                    showToast('✅ سفارش ثبت شد!');
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                }
             } catch (error) {
                 console.error('Error:', error);
                 showToast('❌ خطا در ثبت سفارش', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '✅ ثبت سفارش';
+                btn.innerHTML = editOrderId ? '✅ ذخیره تغییرات' : '✅ ثبت سفارش';
             }
         });
         

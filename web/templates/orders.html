@@ -35,8 +35,8 @@
                 خانه
             </a>
             <a href="/new-order" class="bottom-nav-item">
-                <span class="icon">➕</span>
-                سفارش
+                <span class="icon">☕</span>
+                منو
             </a>
             <a href="/orders" class="bottom-nav-item active">
                 <span class="icon">📋</span>
@@ -62,9 +62,9 @@
         <div class="card" style="padding: 12px;">
             <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;">
                 <select id="status-filter" class="form-select" style="min-height:48px;">
-                    <option value="all">📋 همه</option>
-                    <option value="open">⏳ باز</option>
-                    <option value="closed">✅ بسته</option>
+                    <option value="all">📋 همه سفارشات</option>
+                    <option value="open">⏳ سفارشات باز</option>
+                    <option value="closed">✅ سفارشات بسته</option>
                 </select>
                 <button id="refresh-btn" class="btn btn-secondary btn-icon">🔄</button>
             </div>
@@ -78,7 +78,7 @@
         </div>
     </div>
     
-    <!-- Order Details Modal -->
+    <!-- Order Details/Edit Modal -->
     <div class="modal" id="order-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -128,24 +128,18 @@
         let currentOrders = [];
         
         function formatPrice(price) {
-            return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
-        }
-        
-        function formatDate(dateStr) {
-            if (!dateStr) return '-';
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('fa-IR') + ' - ' + d.toLocaleTimeString('fa-IR', {hour:'2-digit',minute:'2-digit'});
+            return new Intl.NumberFormat('fa-IR').format(price) + ' ت';
         }
         
         function getTimeAgo(dateStr) {
             if (!dateStr) return '';
             const diff = Date.now() - new Date(dateStr).getTime();
             const mins = Math.floor(diff / 60000);
-            if (mins < 1) return 'همین الان';
-            if (mins < 60) return mins + ' دقیقه پیش';
+            if (mins < 1) return 'الان';
+            if (mins < 60) return mins + ' دقیقه';
             const hours = Math.floor(mins / 60);
-            if (hours < 24) return hours + ' ساعت پیش';
-            return Math.floor(hours / 24) + ' روز پیش';
+            if (hours < 24) return hours + ' ساعت';
+            return Math.floor(hours / 24) + ' روز';
         }
         
         // Load orders
@@ -177,40 +171,64 @@
                 return;
             }
             
-            container.innerHTML = orders.map((order, i) => `
-                <div class="card" style="cursor:pointer;animation-delay:${i*0.05}s;" onclick="showOrder(${order.id})">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-                        <div style="flex:1;min-width:0;">
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            container.innerHTML = orders.map((order, i) => {
+                // Get items summary
+                const itemsList = order.items && order.items.length > 0 
+                    ? order.items.map(item => `
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:0.9rem;">
+                            <span style="color:#555;">
+                                <strong style="color:#333;">${item.quantity}×</strong> ${item.product_name || item.name}
+                            </span>
+                            <span style="font-weight:600;color:#6F4E37;">${formatPrice(item.unit_price * item.quantity)}</span>
+                        </div>
+                    `).join('')
+                    : '<p style="color:#999;font-size:0.85rem;padding:8px 0;">بدون آیتم</p>';
+                
+                return `
+                <div class="card" style="animation-delay:${i*0.03}s;cursor:pointer;" onclick="showOrder(${order.id})">
+                    <!-- Header -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:1.5rem;">${order.table_number ? '🍽️' : '🛍️'}</span>
+                            <div>
                                 <strong style="font-size:1.1rem;color:#333;">#${order.id}</strong>
-                                <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}">
-                                    ${order.status === 'open' ? '⏳ باز' : '✅ بسته'}
+                                <span style="color:#888;font-size:0.85rem;margin-right:8px;">
+                                    ${order.table_number ? 'میز ' + order.table_number : 'بیرون‌بر'}
                                 </span>
                             </div>
-                            <p style="margin:0;color:#666;font-size:0.9rem;">
-                                ${order.table_number ? '🍽️ میز ' + order.table_number : '🛍️ بیرون‌بر'}
-                            </p>
-                            <p style="margin:4px 0 0;font-size:0.8rem;color:#999;">
-                                ${getTimeAgo(order.created_at)}
-                            </p>
                         </div>
-                        <div style="text-align:left;flex-shrink:0;">
-                            <p style="margin:0;font-weight:800;color:#6F4E37;font-size:1.1rem;">
-                                ${formatPrice(order.total || 0)}
-                            </p>
-                            <p style="margin:4px 0 0;font-size:0.85rem;color:#888;">
-                                ${order.items ? order.items.length + ' آیتم' : ''}
-                            </p>
+                        <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}">
+                            ${order.status === 'open' ? '⏳ باز' : '✅ بسته'}
+                        </span>
+                    </div>
+                    
+                    <!-- Items List -->
+                    <div style="background:#fafafa;border-radius:10px;padding:8px 12px;margin-bottom:12px;">
+                        ${itemsList}
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="color:#999;font-size:0.8rem;">🕐 ${getTimeAgo(order.created_at)} پیش</span>
+                        <div style="text-align:left;">
+                            ${order.discount > 0 ? `<span style="color:#EF4444;font-size:0.8rem;margin-left:8px;">-${formatPrice(order.discount)}</span>` : ''}
+                            <strong style="font-size:1.15rem;color:#6F4E37;">${formatPrice(order.total || 0)}</strong>
                         </div>
                     </div>
-                    ${order.items && order.items.length > 0 ? `
-                        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #eee;font-size:0.85rem;color:#666;">
-                            ${order.items.slice(0,3).map(item => item.name + ' (' + item.quantity + ')').join(' • ')}
-                            ${order.items.length > 3 ? ' ...' : ''}
-                        </div>
+                    
+                    <!-- Quick Actions -->
+                    ${order.status === 'open' ? `
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed #eee;" onclick="event.stopPropagation();">
+                        <button class="btn btn-primary btn-sm" onclick="editOrder(${order.id})">
+                            ✏️ ویرایش
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="closeOrderQuick(${order.id})">
+                            ✅ بستن
+                        </button>
+                    </div>
                     ` : ''}
                 </div>
-            `).join('');
+            `}).join('');
         }
         
         function showOrder(orderId) {
@@ -218,61 +236,88 @@
             if (!order) return;
             
             const modal = document.getElementById('order-modal');
-            document.getElementById('modal-title').textContent = 'سفارش #' + order.id;
+            document.getElementById('modal-title').textContent = '☕ سفارش #' + order.id;
             
-            const subtotal = order.items ? order.items.reduce((s, i) => s + (i.price * i.quantity), 0) : 0;
+            const subtotal = order.items ? order.items.reduce((s, i) => s + ((i.unit_price || i.price) * i.quantity), 0) : 0;
             
             document.getElementById('modal-body').innerHTML = `
-                <div style="margin-bottom:20px;">
-                    <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}" style="font-size:0.9rem;">
+                <div style="margin-bottom:16px;">
+                    <span class="badge ${order.status === 'open' ? 'badge-warning' : 'badge-success'}" style="font-size:0.95rem;">
                         ${order.status === 'open' ? '⏳ سفارش باز' : '✅ سفارش بسته شده'}
                     </span>
                 </div>
                 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
-                    <div style="background:#f8f8f8;padding:14px;border-radius:12px;">
-                        <small style="color:#888;display:block;margin-bottom:4px;">🍽️ میز</small>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+                    <div style="background:#f8f8f8;padding:14px;border-radius:12px;text-align:center;">
+                        <div style="font-size:1.5rem;margin-bottom:4px;">${order.table_number ? '🍽️' : '🛍️'}</div>
                         <strong>${order.table_number ? 'میز ' + order.table_number : 'بیرون‌بر'}</strong>
                     </div>
-                    <div style="background:#f8f8f8;padding:14px;border-radius:12px;">
-                        <small style="color:#888;display:block;margin-bottom:4px;">🕐 زمان</small>
-                        <strong style="font-size:0.85rem;">${getTimeAgo(order.created_at)}</strong>
+                    <div style="background:#f8f8f8;padding:14px;border-radius:12px;text-align:center;">
+                        <div style="font-size:1.5rem;margin-bottom:4px;">🕐</div>
+                        <strong style="font-size:0.9rem;">${getTimeAgo(order.created_at)} پیش</strong>
                     </div>
                 </div>
                 
-                <h4 style="margin-bottom:12px;color:#333;">📦 آیتم‌ها</h4>
+                <h4 style="margin-bottom:12px;color:#333;display:flex;align-items:center;gap:8px;">
+                    ☕ آیتم‌های سفارش
+                    <span style="background:#6F4E37;color:white;font-size:0.75rem;padding:2px 8px;border-radius:10px;">${order.items ? order.items.length : 0} آیتم</span>
+                </h4>
                 <div style="background:#f8f8f8;border-radius:12px;overflow:hidden;margin-bottom:20px;">
                     ${order.items && order.items.length > 0 ? order.items.map(item => `
-                        <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;">
-                            <span>${item.name} × ${item.quantity}</span>
-                            <strong>${formatPrice(item.price * item.quantity)}</strong>
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee;">
+                            <div>
+                                <strong style="font-size:1rem;color:#333;">${item.product_name || item.name}</strong>
+                                <div style="color:#888;font-size:0.85rem;margin-top:2px;">
+                                    ${item.quantity} عدد × ${formatPrice(item.unit_price || item.price)}
+                                </div>
+                            </div>
+                            <strong style="font-size:1.05rem;color:#6F4E37;">${formatPrice((item.unit_price || item.price) * item.quantity)}</strong>
                         </div>
                     `).join('') : '<p style="padding:20px;text-align:center;color:#888;">بدون آیتم</p>'}
                 </div>
                 
                 <div style="border-top:2px dashed #ddd;padding-top:16px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.95rem;">
-                        <span>جمع:</span>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.95rem;">
+                        <span>جمع آیتم‌ها:</span>
                         <span>${formatPrice(subtotal)}</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:0.95rem;color:#EF4444;">
-                        <span>تخفیف:</span>
-                        <span>- ${formatPrice(order.discount || 0)}</span>
+                    ${order.discount > 0 ? `
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.95rem;color:#EF4444;">
+                        <span>🎁 تخفیف:</span>
+                        <span>- ${formatPrice(order.discount)}</span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;font-size:1.25rem;font-weight:800;color:#6F4E37;padding-top:10px;border-top:2px solid #eee;">
-                        <span>💰 مبلغ نهایی:</span>
+                    ` : ''}
+                    <div style="display:flex;justify-content:space-between;font-size:1.3rem;font-weight:800;color:#6F4E37;padding-top:12px;border-top:2px solid #eee;">
+                        <span>💰 قابل پرداخت:</span>
                         <span>${formatPrice(order.total || 0)}</span>
                     </div>
                 </div>
                 
                 ${order.status === 'open' ? `
-                    <button class="btn btn-success btn-block mt-3" onclick="closeOrder(${order.id})" style="font-size:1.1rem;">
-                        ✅ بستن سفارش
-                    </button>
-                ` : ''}
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;">
+                        <button class="btn btn-primary" onclick="editOrder(${order.id})" style="font-size:1rem;">
+                            ✏️ ویرایش سفارش
+                        </button>
+                        <button class="btn btn-success" onclick="closeOrder(${order.id})" style="font-size:1rem;">
+                            ✅ بستن سفارش
+                        </button>
+                    </div>
+                ` : `
+                    <div style="margin-top:20px;">
+                        <button class="btn btn-secondary btn-block" onclick="closeModal()">
+                            ✕ بستن
+                        </button>
+                    </div>
+                `}
             `;
             
             modal.classList.add('show');
+        }
+        
+        function editOrder(orderId) {
+            // Redirect to new order page with order data
+            sessionStorage.setItem('edit_order_id', orderId);
+            window.location.href = '/new-order?edit=' + orderId;
         }
         
         function closeModal() {
@@ -281,7 +326,14 @@
         
         async function closeOrder(orderId) {
             if (!confirm('سفارش بسته شود؟')) return;
-            
+            await doCloseOrder(orderId);
+        }
+        
+        async function closeOrderQuick(orderId) {
+            await doCloseOrder(orderId);
+        }
+        
+        async function doCloseOrder(orderId) {
             try {
                 await ordersManager.updateOrderStatus(orderId, 'closed');
                 closeModal();
@@ -317,12 +369,14 @@
         window.showOrder = showOrder;
         window.closeModal = closeModal;
         window.closeOrder = closeOrder;
+        window.closeOrderQuick = closeOrderQuick;
+        window.editOrder = editOrder;
         
         // Load
         loadOrders();
         
-        // Auto refresh
-        setInterval(loadOrders, 60000);
+        // Auto refresh every 30 seconds
+        setInterval(loadOrders, 30000);
     </script>
 </body>
 </html>

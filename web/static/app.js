@@ -303,12 +303,31 @@ class OrdersManager {
         }
     }
     
+    async getOrder(orderId) {
+        try {
+            return await API.get(`/api/orders/${orderId}`);
+        } catch (error) {
+            console.error('Error getting order:', error);
+            throw error;
+        }
+    }
+    
     async createOrder(orderData) {
         try {
             const order = await API.post('/api/orders', orderData);
             return order;
         } catch (error) {
             console.error('Error creating order:', error);
+            throw error;
+        }
+    }
+    
+    async updateOrder(orderId, orderData) {
+        try {
+            const order = await API.put(`/api/orders/${orderId}`, orderData);
+            return order;
+        } catch (error) {
+            console.error('Error updating order:', error);
             throw error;
         }
     }

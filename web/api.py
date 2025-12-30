@@ -448,6 +448,98 @@ async def get_order(
         session.close()
 
 
+@app.put("/api/orders/{order_id}", response_model=OrderResponse)
+async def update_order(
+    order_id: int,
+    order_data: OrderCreate,
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Update an existing order (replace items)"""
+    session = SessionLocal()
+    try:
+        order = session.query(OrderModel).filter_by(id=order_id).first()
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="سفارش یافت نشد"
+            )
+        
+        if order.status != "open":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="فقط سفارشات باز قابل ویرایش هستند"
+            )
+        
+        # Get products for the order
+        product_ids = [item.product_id for item in order_data.items]
+        products = {
+            p.id: p 
+            for p in session.query(ProductModel).filter(
+                ProductModel.id.in_(product_ids),
+                ProductModel.is_active == True
+            ).all()
+        }
+        
+        # Validate all products exist
+        for item in order_data.items:
+            if item.product_id not in products:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"محصول با شناسه {item.product_id} یافت نشد"
+                )
+        
+        # Update order fields
+        order.table_number = order_data.table_number
+        order.discount = order_data.discount
+        
+        # Delete existing items
+        session.query(OrderItemModel).filter_by(order_id=order.id).delete()
+        
+        # Create new items
+        order_items = []
+        for item in order_data.items:
+            product = products[item.product_id]
+            order_item = OrderItemModel(
+                order_id=order.id,
+                product_name=product.name,
+                unit_price=product.price,
+                quantity=item.quantity
+            )
+            session.add(order_item)
+            order_items.append(OrderItemResponse(
+                id=0,
+                product_name=product.name,
+                unit_price=product.price,
+                quantity=item.quantity,
+                total=product.price * item.quantity
+            ))
+        
+        session.commit()
+        
+        subtotal = sum(item.total for item in order_items)
+        
+        return OrderResponse(
+            id=order.id,
+            table_number=order.table_number,
+            status=order.status,
+            discount=order.discount,
+            created_at=order.created_at,
+            items=order_items,
+            subtotal=subtotal,
+            total=max(0, subtotal - order.discount)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"خطا در ویرایش سفارش: {str(e)}"
+        )
+    finally:
+        session.close()
+
+
 # ============== Dashboard API ==============
 
 @app.get("/api/dashboard/stats", response_model=DashboardStats)
