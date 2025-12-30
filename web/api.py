@@ -63,7 +63,9 @@ class ProductResponse(BaseModel):
 
 
 class OrderItemCreate(BaseModel):
-    product_id: int
+    product_id: Optional[int] = None  # None for custom items
+    product_name: Optional[str] = None  # For custom items
+    unit_price: Optional[int] = None  # For custom items
     quantity: int
 
 
@@ -299,26 +301,35 @@ async def create_order(
     order_data: OrderCreate,
     current_user: UserModel = Depends(get_current_user)
 ):
-    """Create a new order"""
+    """Create a new order (supports regular products and custom items)"""
     session = SessionLocal()
     try:
-        # Get products for the order
-        product_ids = [item.product_id for item in order_data.items]
-        products = {
-            p.id: p 
-            for p in session.query(ProductModel).filter(
-                ProductModel.id.in_(product_ids),
-                ProductModel.is_active == True
-            ).all()
-        }
+        # Get products for regular items
+        product_ids = [item.product_id for item in order_data.items if item.product_id is not None]
+        products = {}
+        if product_ids:
+            products = {
+                p.id: p 
+                for p in session.query(ProductModel).filter(
+                    ProductModel.id.in_(product_ids),
+                    ProductModel.is_active == True
+                ).all()
+            }
         
-        # Validate all products exist
+        # Validate regular products exist
         for item in order_data.items:
-            if item.product_id not in products:
+            if item.product_id is not None and item.product_id not in products:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"محصول با شناسه {item.product_id} یافت نشد"
                 )
+            # Validate custom items have name and price
+            if item.product_id is None:
+                if not item.product_name or item.unit_price is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="آیتم سفارشی باید نام و قیمت داشته باشد"
+                    )
         
         # Create order
         order = OrderModel(
@@ -333,20 +344,29 @@ async def create_order(
         # Create order items
         order_items = []
         for item in order_data.items:
-            product = products[item.product_id]
+            if item.product_id is not None:
+                # Regular product
+                product = products[item.product_id]
+                name = product.name
+                price = product.price
+            else:
+                # Custom item
+                name = item.product_name
+                price = item.unit_price
+            
             order_item = OrderItemModel(
                 order_id=order.id,
-                product_name=product.name,
-                unit_price=product.price,
+                product_name=name,
+                unit_price=price,
                 quantity=item.quantity
             )
             session.add(order_item)
             order_items.append(OrderItemResponse(
-                id=0,  # Will be set after commit
-                product_name=product.name,
-                unit_price=product.price,
+                id=0,
+                product_name=name,
+                unit_price=price,
                 quantity=item.quantity,
-                total=product.price * item.quantity
+                total=price * item.quantity
             ))
         
         session.commit()
@@ -454,7 +474,7 @@ async def update_order(
     order_data: OrderCreate,
     current_user: UserModel = Depends(get_current_user)
 ):
-    """Update an existing order (replace items)"""
+    """Update an existing order (supports regular products and custom items)"""
     session = SessionLocal()
     try:
         order = session.query(OrderModel).filter_by(id=order_id).first()
@@ -470,23 +490,31 @@ async def update_order(
                 detail="فقط سفارشات باز قابل ویرایش هستند"
             )
         
-        # Get products for the order
-        product_ids = [item.product_id for item in order_data.items]
-        products = {
-            p.id: p 
-            for p in session.query(ProductModel).filter(
-                ProductModel.id.in_(product_ids),
-                ProductModel.is_active == True
-            ).all()
-        }
+        # Get products for regular items
+        product_ids = [item.product_id for item in order_data.items if item.product_id is not None]
+        products = {}
+        if product_ids:
+            products = {
+                p.id: p 
+                for p in session.query(ProductModel).filter(
+                    ProductModel.id.in_(product_ids),
+                    ProductModel.is_active == True
+                ).all()
+            }
         
-        # Validate all products exist
+        # Validate items
         for item in order_data.items:
-            if item.product_id not in products:
+            if item.product_id is not None and item.product_id not in products:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"محصول با شناسه {item.product_id} یافت نشد"
                 )
+            if item.product_id is None:
+                if not item.product_name or item.unit_price is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="آیتم سفارشی باید نام و قیمت داشته باشد"
+                    )
         
         # Update order fields
         order.table_number = order_data.table_number
@@ -498,20 +526,27 @@ async def update_order(
         # Create new items
         order_items = []
         for item in order_data.items:
-            product = products[item.product_id]
+            if item.product_id is not None:
+                product = products[item.product_id]
+                name = product.name
+                price = product.price
+            else:
+                name = item.product_name
+                price = item.unit_price
+            
             order_item = OrderItemModel(
                 order_id=order.id,
-                product_name=product.name,
-                unit_price=product.price,
+                product_name=name,
+                unit_price=price,
                 quantity=item.quantity
             )
             session.add(order_item)
             order_items.append(OrderItemResponse(
                 id=0,
-                product_name=product.name,
-                unit_price=product.price,
+                product_name=name,
+                unit_price=price,
                 quantity=item.quantity,
-                total=product.price * item.quantity
+                total=price * item.quantity
             ))
         
         session.commit()

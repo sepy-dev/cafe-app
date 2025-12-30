@@ -82,11 +82,14 @@
                     </div>
                 </div>
                 
-                <!-- Category Filter -->
+                <!-- Category Filter + Custom Item Button -->
                 <div class="card" style="padding: 12px 16px;">
-                    <select id="category-filter" class="form-select" style="min-height: 50px; font-weight: 600;">
-                        <option value="all">📋 همه آیتم‌ها</option>
-                    </select>
+                    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;">
+                        <select id="category-filter" class="form-select" style="min-height: 50px; font-weight: 600;">
+                            <option value="all">📋 همه آیتم‌ها</option>
+                        </select>
+                        <button id="add-custom-btn" class="btn btn-primary btn-icon" title="آیتم سفارشی">✨</button>
+                    </div>
                 </div>
                 
                 <!-- Products Grid -->
@@ -128,6 +131,11 @@
                             <option value="10">میز ۱۰</option>
                         </select>
                     </div>
+                    
+                    <!-- Add Custom Item Button (in cart) -->
+                    <button id="add-custom-cart-btn" class="btn btn-secondary btn-block mb-2" style="border:2px dashed #ccc;">
+                        ✨ افزودن آیتم سفارشی
+                    </button>
                     
                     <!-- Order Items -->
                     <div class="cart-items" id="cart-items">
@@ -174,6 +182,34 @@
         </div>
     </div>
     
+    <!-- Custom Item Modal -->
+    <div class="modal" id="custom-item-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✨ آیتم سفارشی</h2>
+                <span class="modal-close" onclick="closeCustomModal()">✕</span>
+            </div>
+            <form id="custom-item-form">
+                <div class="form-group">
+                    <label class="form-label">📝 نام آیتم</label>
+                    <input type="text" id="custom-name" class="form-control" required placeholder="مثلاً: کیک تولد" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">💰 قیمت (تومان)</label>
+                    <input type="number" id="custom-price" class="form-control" required min="0" inputmode="numeric" placeholder="مثلاً: 150000">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">🔢 تعداد</label>
+                    <input type="number" id="custom-quantity" class="form-control" value="1" min="1" inputmode="numeric">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCustomModal()">انصراف</button>
+                    <button type="submit" class="btn btn-success">✅ افزودن</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script src="/static/app.js"></script>
     <script>
         // ==================== AUTH ====================
@@ -216,6 +252,8 @@
         
         // ==================== ORDER STATE ====================
         const orderItems = [];
+        let customItemCounter = 0; // For unique IDs for custom items
+        
         const cartSection = document.getElementById('cart-section');
         const fabCart = document.getElementById('fab-cart');
         const showCartBtn = document.getElementById('show-cart-btn');
@@ -266,6 +304,61 @@
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
         
+        // ==================== CUSTOM ITEM MODAL ====================
+        const customModal = document.getElementById('custom-item-modal');
+        
+        function openCustomModal() {
+            customModal.classList.add('show');
+            document.getElementById('custom-name').value = '';
+            document.getElementById('custom-price').value = '';
+            document.getElementById('custom-quantity').value = '1';
+            document.getElementById('custom-name').focus();
+        }
+        
+        function closeCustomModal() {
+            customModal.classList.remove('show');
+        }
+        
+        document.getElementById('add-custom-btn').addEventListener('click', openCustomModal);
+        document.getElementById('add-custom-cart-btn').addEventListener('click', openCustomModal);
+        
+        customModal.addEventListener('click', (e) => {
+            if (e.target === customModal) closeCustomModal();
+        });
+        
+        document.getElementById('custom-item-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('custom-name').value.trim();
+            const price = parseInt(document.getElementById('custom-price').value) || 0;
+            const quantity = parseInt(document.getElementById('custom-quantity').value) || 1;
+            
+            if (!name || price <= 0) {
+                showToast('نام و قیمت را وارد کنید', 'error');
+                return;
+            }
+            
+            // Create a custom product object
+            customItemCounter++;
+            const customProduct = {
+                id: -customItemCounter, // Negative ID for custom items
+                name: name,
+                price: price,
+                category: 'سفارشی',
+                isCustom: true
+            };
+            
+            orderItems.push({
+                product: customProduct,
+                quantity: quantity
+            });
+            
+            renderOrder();
+            closeCustomModal();
+            showToast('✨ ' + name + ' اضافه شد');
+            if (navigator.vibrate) navigator.vibrate(50);
+        });
+        
         // ==================== PRODUCTS ====================
         const productsManager = new ProductsManager();
         const ordersManager = new OrdersManager();
@@ -283,6 +376,7 @@
             'سالاد': '🥗',
             'آبمیوه': '🍹',
             'اسموتی': '🥤',
+            'سفارشی': '✨',
             'default': '🍽️'
         };
         
@@ -317,7 +411,7 @@
                 document.getElementById('edit-banner').style.display = 'block';
                 document.getElementById('edit-order-id').textContent = orderId;
                 document.getElementById('page-title').textContent = '✏️ ویرایش سفارش';
-                document.getElementById('page-subtitle').textContent = 'آیتم‌ها را تغییر دهید';
+                document.getElementById('page-subtitle').textContent = 'آیتم‌ها را تغییر دهید یا آیتم سفارشی اضافه کنید';
                 document.getElementById('cart-title').textContent = 'ویرایش سفارش';
                 document.getElementById('submit-order-btn').innerHTML = '✅ ذخیره تغییرات';
                 
@@ -328,11 +422,24 @@
                 // Load items
                 orderItems.length = 0;
                 for (const item of order.items) {
-                    // Find product by name (since we have product_name in order items)
+                    // Find product by name
                     const product = productsManager.products.find(p => p.name === item.product_name);
                     if (product) {
                         orderItems.push({
                             product: product,
+                            quantity: item.quantity
+                        });
+                    } else {
+                        // This is a custom item (not in menu)
+                        customItemCounter++;
+                        orderItems.push({
+                            product: {
+                                id: -customItemCounter,
+                                name: item.product_name,
+                                price: item.unit_price,
+                                category: 'سفارشی',
+                                isCustom: true
+                            },
                             quantity: item.quantity
                         });
                     }
@@ -456,7 +563,7 @@
                     <div class="cart-empty">
                         <div class="icon">☕</div>
                         <p>سینی خالی است</p>
-                        <small>از منو انتخاب کنید</small>
+                        <small>از منو انتخاب کنید یا آیتم سفارشی اضافه کنید</small>
                     </div>
                 `;
                 updateTotals();
@@ -464,9 +571,11 @@
             }
             
             container.innerHTML = orderItems.map(item => `
-                <div class="cart-item">
+                <div class="cart-item ${item.product.isCustom ? 'custom-item' : ''}">
                     <div class="cart-item-info">
-                        <div class="cart-item-name">${item.product.name}</div>
+                        <div class="cart-item-name">
+                            ${item.product.isCustom ? '✨ ' : ''}${item.product.name}
+                        </div>
                         <div class="cart-item-price">${formatPrice(item.product.price * item.quantity)}</div>
                     </div>
                     <div class="cart-item-controls">
@@ -511,13 +620,27 @@
             const tableNumber = document.getElementById('table-number').value || null;
             const discount = parseInt(document.getElementById('discount').value) || 0;
             
+            // Build order data with support for custom items
             const orderData = {
                 table_number: tableNumber ? parseInt(tableNumber) : null,
                 discount: discount,
-                items: orderItems.map(item => ({
-                    product_id: item.product.id,
-                    quantity: item.quantity
-                }))
+                items: orderItems.map(item => {
+                    if (item.product.isCustom) {
+                        // Custom item - send name and price directly
+                        return {
+                            product_id: null,
+                            product_name: item.product.name,
+                            unit_price: item.product.price,
+                            quantity: item.quantity
+                        };
+                    } else {
+                        // Regular product
+                        return {
+                            product_id: item.product.id,
+                            quantity: item.quantity
+                        };
+                    }
+                })
             };
             
             const btn = document.getElementById('submit-order-btn');
@@ -526,7 +649,6 @@
             
             try {
                 if (editOrderId) {
-                    // Update existing order
                     await ordersManager.updateOrder(editOrderId, orderData);
                     showToast('✅ تغییرات ذخیره شد!');
                     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -534,7 +656,6 @@
                         window.location.href = '/orders';
                     }, 1000);
                 } else {
-                    // Create new order
                     await ordersManager.createOrder(orderData);
                     orderItems.length = 0;
                     renderOrder();
@@ -556,6 +677,7 @@
         // Global functions
         window.updateQuantity = updateQuantity;
         window.removeFromOrder = removeFromOrder;
+        window.closeCustomModal = closeCustomModal;
         
         // Load products
         loadProducts();
