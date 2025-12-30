@@ -2,10 +2,11 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#8b4513">
+    <meta name="theme-color" content="#6F4E37">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>سفارش جدید - کافه</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -21,19 +22,19 @@
             <button class="navbar-toggle" id="navbar-toggle">☰</button>
             <ul class="navbar-menu mobile-hidden" id="navbar-menu">
                 <li><a href="/dashboard">📊 داشبورد</a></li>
-                <li><a href="/new-order" class="active">➕ سفارش جدید</a></li>
+                <li><a href="/new-order" class="active">➕ سفارش</a></li>
                 <li><a href="/orders">📋 سفارشات</a></li>
                 <li id="admin-menu-item" style="display: none;"><a href="/admin">👥 کاربران</a></li>
             </ul>
         </div>
     </nav>
     
-    <!-- Bottom Navigation (Mobile) -->
+    <!-- Bottom Navigation -->
     <nav class="bottom-nav">
         <div class="bottom-nav-items">
             <a href="/dashboard" class="bottom-nav-item">
-                <span class="icon">📊</span>
-                داشبورد
+                <span class="icon">🏠</span>
+                خانه
             </a>
             <a href="/new-order" class="bottom-nav-item active">
                 <span class="icon">➕</span>
@@ -46,58 +47,64 @@
             <a href="#" class="bottom-nav-item" id="show-cart-btn">
                 <span class="icon">🛒</span>
                 سبد
-                <span class="fab-badge" id="cart-count" style="display:none;position:absolute;top:-2px;right:50%;transform:translateX(50%);">0</span>
             </a>
         </div>
     </nav>
     
-    <!-- Floating Cart Button -->
+    <!-- FAB Button -->
     <div class="fab-container" id="fab-container">
-        <button class="fab" id="fab-cart">
+        <button class="fab" id="fab-cart" aria-label="سبد خرید">
             🛒
             <span class="fab-badge" id="fab-badge" style="display:none;">0</span>
         </button>
     </div>
+    
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
     
     <div class="container-fluid">
         <div class="order-page">
             <!-- Products Section -->
             <div class="order-products">
                 <div class="page-header">
-                    <h1>➕ سفارش جدید</h1>
-                    <p>محصولات را انتخاب کنید</p>
+                    <h1>☕ سفارش جدید</h1>
+                    <p>محصولات را لمس کنید</p>
                 </div>
                 
                 <!-- Category Filter -->
-                <div class="card">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <select id="category-filter" class="form-select">
-                            <option value="all">📋 همه محصولات</option>
-                        </select>
-                    </div>
+                <div class="card" style="padding: 12px 16px;">
+                    <select id="category-filter" class="form-select" style="min-height: 50px; font-weight: 600;">
+                        <option value="all">📋 همه محصولات</option>
+                    </select>
                 </div>
                 
                 <!-- Products Grid -->
                 <div class="products-grid" id="products-grid">
-                    <div style="grid-column: 1/-1; text-align: center; padding: 40px;">
+                    <div style="grid-column: 1/-1; padding: 60px 20px;">
                         <div class="spinner"></div>
                     </div>
                 </div>
             </div>
             
-            <!-- Cart Section (Sidebar on Desktop, Bottom Sheet on Mobile) -->
+            <!-- Cart Section -->
             <div class="order-sidebar" id="cart-section">
                 <div class="order-cart" id="order-cart">
+                    <!-- Drag Handle (Mobile) -->
+                    <div id="cart-handle" style="width:40px;height:5px;background:#ddd;border-radius:3px;margin:0 auto 16px;display:none;"></div>
+                    
                     <div class="cart-header">
-                        <h3>🛒 سبد سفارش</h3>
-                        <button class="btn btn-sm btn-secondary" id="close-cart-btn" style="display:none;">✕</button>
+                        <h3>
+                            🛒 سبد خرید
+                            <span class="cart-count-badge" id="cart-count-badge" style="display:none;">0</span>
+                        </h3>
+                        <button class="btn btn-sm btn-secondary" id="close-cart-btn" style="display:none;">✕ بستن</button>
                     </div>
                     
                     <!-- Table Number -->
                     <div class="form-group">
-                        <label class="form-label">شماره میز</label>
+                        <label class="form-label">🍽️ شماره میز</label>
                         <select id="table-number" class="form-select">
-                            <option value="">بدون میز (بیرون‌بر)</option>
+                            <option value="">بیرون‌بر</option>
                             <option value="1">میز ۱</option>
                             <option value="2">میز ۲</option>
                             <option value="3">میز ۳</option>
@@ -116,28 +123,28 @@
                         <div class="cart-empty">
                             <div class="icon">🛒</div>
                             <p>سبد خالی است</p>
-                            <small>محصولی انتخاب کنید</small>
+                            <small>روی محصولات بزنید</small>
                         </div>
                     </div>
                     
                     <!-- Discount -->
                     <div class="form-group mt-2">
-                        <label class="form-label">تخفیف (تومان)</label>
-                        <input type="number" id="discount" class="form-control" value="0" min="0" inputmode="numeric">
+                        <label class="form-label">🎁 تخفیف (تومان)</label>
+                        <input type="number" id="discount" class="form-control" value="0" min="0" inputmode="numeric" placeholder="مثلاً: 5000">
                     </div>
                     
                     <!-- Cart Total -->
                     <div class="cart-total">
                         <div class="cart-total-row">
-                            <span>جمع:</span>
+                            <span>جمع کل:</span>
                             <span id="subtotal">۰ تومان</span>
                         </div>
                         <div class="cart-total-row">
                             <span>تخفیف:</span>
-                            <span id="discount-amount">۰ تومان</span>
+                            <span id="discount-amount" style="color: #EF4444;">- ۰ تومان</span>
                         </div>
                         <div class="cart-total-row final">
-                            <span>مبلغ نهایی:</span>
+                            <span>💰 مبلغ نهایی:</span>
                             <span id="total">۰ تومان</span>
                         </div>
                     </div>
@@ -145,7 +152,7 @@
                     <!-- Actions -->
                     <div class="cart-actions">
                         <button id="clear-cart-btn" class="btn btn-secondary">
-                            🗑️ پاک کردن
+                            🗑️ پاک
                         </button>
                         <button id="submit-order-btn" class="btn btn-success">
                             ✅ ثبت سفارش
@@ -156,79 +163,106 @@
         </div>
     </div>
     
-    <!-- Success Toast -->
-    <div id="toast" class="alert alert-success" style="position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:9999;display:none;min-width:280px;text-align:center;"></div>
-    
     <script src="/static/app.js"></script>
     <script>
-        // Check authentication
+        // ==================== AUTH ====================
         if (!AuthManager.isAuthenticated()) {
             window.location.href = '/login';
         }
         
-        // Show admin menu if user is admin
         const user = AuthManager.getUser();
-        if (user && user.role === 'admin') {
-            document.getElementById('admin-menu-item').style.display = 'block';
+        if (user) {
+            document.getElementById('user-info').textContent = user.full_name || user.username;
+            if (user.role === 'admin') {
+                document.getElementById('admin-menu-item').style.display = 'block';
+            }
         }
         
-        // Mobile navigation toggle
-        document.getElementById('navbar-toggle').addEventListener('click', () => {
-            const menu = document.getElementById('navbar-menu');
-            menu.classList.toggle('mobile-hidden');
+        // ==================== NAVIGATION ====================
+        const navToggle = document.getElementById('navbar-toggle');
+        const navMenu = document.getElementById('navbar-menu');
+        
+        navToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('mobile-hidden');
         });
         
-        // Close menu when clicking a link
         document.querySelectorAll('.navbar-menu a').forEach(link => {
-            link.addEventListener('click', () => {
-                document.getElementById('navbar-menu').classList.add('mobile-hidden');
-            });
+            link.addEventListener('click', () => navMenu.classList.add('mobile-hidden'));
         });
         
-        // Cart state
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            AuthManager.logout();
+            window.location.href = '/login';
+        });
+        
+        // ==================== CART STATE ====================
         const cart = [];
         const cartSection = document.getElementById('cart-section');
         const fabCart = document.getElementById('fab-cart');
         const showCartBtn = document.getElementById('show-cart-btn');
         const closeCartBtn = document.getElementById('close-cart-btn');
+        const cartHandle = document.getElementById('cart-handle');
         let isCartVisible = false;
         
-        // Toggle cart visibility on mobile
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+        
         function toggleCart() {
-            if (window.innerWidth <= 768) {
-                isCartVisible = !isCartVisible;
-                if (isCartVisible) {
-                    cartSection.classList.add('visible');
-                    closeCartBtn.style.display = 'block';
-                } else {
-                    cartSection.classList.remove('visible');
-                    closeCartBtn.style.display = 'none';
-                }
+            if (!isMobile()) return;
+            
+            isCartVisible = !isCartVisible;
+            if (isCartVisible) {
+                cartSection.classList.add('visible');
+                closeCartBtn.style.display = 'block';
+                cartHandle.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            } else {
+                cartSection.classList.remove('visible');
+                closeCartBtn.style.display = 'none';
+                cartHandle.style.display = 'none';
+                document.body.style.overflow = '';
             }
         }
         
         fabCart.addEventListener('click', toggleCart);
-        showCartBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            toggleCart();
-        });
+        showCartBtn.addEventListener('click', (e) => { e.preventDefault(); toggleCart(); });
         closeCartBtn.addEventListener('click', toggleCart);
         
-        // Handle resize
-        function handleResize() {
-            if (window.innerWidth > 768) {
+        // Close cart on resize to desktop
+        window.addEventListener('resize', () => {
+            if (!isMobile() && isCartVisible) {
+                isCartVisible = false;
                 cartSection.classList.remove('visible');
                 closeCartBtn.style.display = 'none';
-                isCartVisible = false;
+                cartHandle.style.display = 'none';
+                document.body.style.overflow = '';
             }
-        }
-        window.addEventListener('resize', handleResize);
+        });
         
-        // Products Manager
+        // ==================== TOAST ====================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+        
+        // ==================== PRODUCTS ====================
         const productsManager = new ProductsManager();
         const ordersManager = new OrdersManager();
         
-        // Load products
+        const categoryEmojis = {
+            'نوشیدنی گرم': '☕',
+            'نوشیدنی سرد': '🧊',
+            'دسر': '🍰',
+            'غذا': '🍔',
+            'صبحانه': '🍳',
+            'سالاد': '🥗',
+            'default': '🍽️'
+        };
+        
         async function loadProducts() {
             try {
                 await productsManager.loadProducts();
@@ -237,136 +271,110 @@
             } catch (error) {
                 console.error('Error loading products:', error);
                 document.getElementById('products-grid').innerHTML = 
-                    '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#666;">خطا در بارگذاری محصولات</div>';
+                    '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#888;">❌ خطا در بارگذاری</div>';
             }
         }
         
-        // Populate category filter
         function populateCategoryFilter() {
-            const categoryFilter = document.getElementById('category-filter');
-            const categories = productsManager.categories;
-            
-            categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                categoryFilter.appendChild(option);
+            const filter = document.getElementById('category-filter');
+            productsManager.categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = (categoryEmojis[cat] || '📦') + ' ' + cat;
+                filter.appendChild(opt);
             });
-            
-            categoryFilter.addEventListener('change', () => renderProducts());
+            filter.addEventListener('change', renderProducts);
         }
         
-        // Product emojis based on category
-        function getProductEmoji(category) {
-            const emojis = {
-                'نوشیدنی گرم': '☕',
-                'نوشیدنی سرد': '🥤',
-                'دسر': '🍰',
-                'غذا': '🍔',
-                'صبحانه': '🍳',
-                'سالاد': '🥗'
-            };
-            return emojis[category] || '🍽️';
-        }
-        
-        // Render products
         function renderProducts() {
             const container = document.getElementById('products-grid');
-            const selectedCategory = document.getElementById('category-filter').value;
-            const products = productsManager.getProductsByCategory(selectedCategory);
+            const category = document.getElementById('category-filter').value;
+            const products = productsManager.getProductsByCategory(category);
             
             if (products.length === 0) {
-                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#666;">محصولی یافت نشد</div>';
+                container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:#888;">محصولی یافت نشد</div>';
                 return;
             }
             
-            container.innerHTML = products.map(product => `
-                <div class="product-card" data-product-id="${product.id}">
-                    <div class="product-emoji">${getProductEmoji(product.category)}</div>
-                    <div class="product-name">${product.name}</div>
-                    <div class="product-price">${formatPrice(product.price)}</div>
+            container.innerHTML = products.map((p, i) => `
+                <div class="product-card" data-id="${p.id}" style="animation-delay: ${i * 0.03}s;">
+                    <div class="product-emoji">${categoryEmojis[p.category] || categoryEmojis.default}</div>
+                    <div class="product-name">${p.name}</div>
+                    <div class="product-price">${formatPrice(p.price)}</div>
                 </div>
             `).join('');
             
-            // Add click handlers
             container.querySelectorAll('.product-card').forEach(card => {
                 card.addEventListener('click', () => {
-                    const productId = parseInt(card.dataset.productId);
-                    addToCart(productId);
+                    const id = parseInt(card.dataset.id);
+                    addToCart(id);
                     
                     // Visual feedback
-                    card.style.transform = 'scale(0.95)';
-                    card.style.borderColor = '#28a745';
-                    setTimeout(() => {
-                        card.style.transform = '';
-                        card.style.borderColor = '';
-                    }, 150);
+                    card.classList.add('added');
+                    setTimeout(() => card.classList.remove('added'), 300);
                 });
             });
         }
         
-        // Format price
         function formatPrice(price) {
             return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
         }
         
-        // Add product to cart
+        // ==================== CART FUNCTIONS ====================
         function addToCart(productId) {
             const product = productsManager.getProductById(productId);
             if (!product) return;
             
-            const existingItem = cart.find(item => item.product.id === productId);
-            
-            if (existingItem) {
-                existingItem.quantity++;
+            const existing = cart.find(item => item.product.id === productId);
+            if (existing) {
+                existing.quantity++;
             } else {
                 cart.push({ product, quantity: 1 });
             }
             
             renderCart();
-            showToast(`${product.name} اضافه شد`);
+            showToast('✅ ' + product.name + ' اضافه شد');
+            
+            // Vibrate if supported
+            if (navigator.vibrate) navigator.vibrate(50);
         }
         
-        // Remove from cart
         function removeFromCart(productId) {
             const index = cart.findIndex(item => item.product.id === productId);
-            if (index > -1) {
-                cart.splice(index, 1);
-            }
+            if (index > -1) cart.splice(index, 1);
             renderCart();
         }
         
-        // Update quantity
         function updateQuantity(productId, delta) {
             const item = cart.find(item => item.product.id === productId);
             if (!item) return;
             
             item.quantity += delta;
-            
             if (item.quantity <= 0) {
                 removeFromCart(productId);
             } else {
                 renderCart();
             }
+            
+            if (navigator.vibrate) navigator.vibrate(30);
         }
         
-        // Render cart
         function renderCart() {
             const container = document.getElementById('cart-items');
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
             
             // Update badges
-            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
             const fabBadge = document.getElementById('fab-badge');
-            const cartCount = document.getElementById('cart-count');
+            const cartBadge = document.getElementById('cart-count-badge');
             
             if (totalItems > 0) {
                 fabBadge.textContent = totalItems;
                 fabBadge.style.display = 'flex';
-                cartCount.textContent = totalItems;
-                cartCount.style.display = 'block';
+                cartBadge.textContent = totalItems;
+                cartBadge.style.display = 'inline-flex';
             } else {
                 fabBadge.style.display = 'none';
-                cartCount.style.display = 'none';
+                cartBadge.style.display = 'none';
             }
             
             if (cart.length === 0) {
@@ -374,7 +382,7 @@
                     <div class="cart-empty">
                         <div class="icon">🛒</div>
                         <p>سبد خالی است</p>
-                        <small>محصولی انتخاب کنید</small>
+                        <small>روی محصولات بزنید</small>
                     </div>
                 `;
                 updateTotals();
@@ -385,12 +393,12 @@
                 <div class="cart-item">
                     <div class="cart-item-info">
                         <div class="cart-item-name">${item.product.name}</div>
-                        <div class="cart-item-price">${formatPrice(item.product.price)}</div>
+                        <div class="cart-item-price">${formatPrice(item.product.price * item.quantity)}</div>
                     </div>
                     <div class="cart-item-controls">
-                        <button class="quantity-btn" onclick="updateQuantity(${item.product.id}, -1)">−</button>
+                        <button class="quantity-btn minus" onclick="updateQuantity(${item.product.id}, -1)">−</button>
                         <span class="quantity-value">${item.quantity}</span>
-                        <button class="quantity-btn" onclick="updateQuantity(${item.product.id}, 1)">+</button>
+                        <button class="quantity-btn plus" onclick="updateQuantity(${item.product.id}, 1)">+</button>
                     </div>
                 </div>
             `).join('');
@@ -398,43 +406,31 @@
             updateTotals();
         }
         
-        // Update totals
         function updateTotals() {
             const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
             const discount = parseInt(document.getElementById('discount').value) || 0;
             const total = Math.max(0, subtotal - discount);
             
             document.getElementById('subtotal').textContent = formatPrice(subtotal);
-            document.getElementById('discount-amount').textContent = formatPrice(discount);
+            document.getElementById('discount-amount').textContent = '- ' + formatPrice(discount);
             document.getElementById('total').textContent = formatPrice(total);
         }
         
-        // Show toast notification
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 1500);
-        }
+        // ==================== ACTIONS ====================
+        document.getElementById('discount').addEventListener('input', updateTotals);
         
-        // Clear cart
         document.getElementById('clear-cart-btn').addEventListener('click', () => {
             if (cart.length === 0) return;
-            if (confirm('آیا سبد را پاک کنید؟')) {
+            if (confirm('سبد پاک شود؟')) {
                 cart.length = 0;
                 renderCart();
+                showToast('🗑️ سبد پاک شد');
             }
         });
         
-        // Discount input
-        document.getElementById('discount').addEventListener('input', updateTotals);
-        
-        // Submit order
         document.getElementById('submit-order-btn').addEventListener('click', async () => {
             if (cart.length === 0) {
-                showToast('سبد خالی است!');
+                showToast('❌ سبد خالی است', 'error');
                 return;
             }
             
@@ -450,38 +446,38 @@
                 }))
             };
             
-            const submitBtn = document.getElementById('submit-order-btn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ در حال ثبت...';
+            const btn = document.getElementById('submit-order-btn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ در حال ثبت...';
             
             try {
                 await ordersManager.createOrder(orderData);
+                
                 cart.length = 0;
                 renderCart();
                 document.getElementById('table-number').value = '';
                 document.getElementById('discount').value = '0';
                 
-                // Close cart on mobile
-                if (window.innerWidth <= 768 && isCartVisible) {
-                    toggleCart();
-                }
+                if (isMobile() && isCartVisible) toggleCart();
                 
-                showToast('✅ سفارش ثبت شد!');
+                showToast('✅ سفارش با موفقیت ثبت شد!');
+                
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                 
             } catch (error) {
-                console.error('Error creating order:', error);
-                showToast('❌ خطا در ثبت سفارش');
+                console.error('Error:', error);
+                showToast('❌ خطا در ثبت سفارش', 'error');
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '✅ ثبت سفارش';
+                btn.disabled = false;
+                btn.innerHTML = '✅ ثبت سفارش';
             }
         });
         
-        // Make functions global for onclick handlers
+        // Global functions
         window.updateQuantity = updateQuantity;
         window.removeFromCart = removeFromCart;
         
-        // Load data on page load
+        // Load products
         loadProducts();
     </script>
 </body>

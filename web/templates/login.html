@@ -2,61 +2,76 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#8b4513">
+    <meta name="theme-color" content="#6F4E37">
     <title>ورود - کافه</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .login-container {
+            background: linear-gradient(135deg, #F5DEB3 0%, #FFF8DC 50%, #FAEBD7 100%);
+        }
+        .login-card {
+            border: 1px solid rgba(111, 78, 55, 0.1);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #6F4E37, #4a3423);
+            box-shadow: 0 6px 20px rgba(111, 78, 55, 0.35);
+        }
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+    </style>
 </head>
 <body>
     <div class="login-container">
-        <div class="login-card">
+        <div class="login-card animate-scale">
             <div class="login-header">
                 <div class="logo">☕</div>
-                <h1>سیستم مدیریت کافه</h1>
-                <p>وارد حساب کاربری شوید</p>
+                <h1>کافه من</h1>
+                <p>سیستم مدیریت سفارشات</p>
             </div>
             
             <form id="login-form">
                 <div class="form-group">
-                    <label class="form-label" for="username">👤 نام کاربری</label>
+                    <label class="form-label">👤 نام کاربری</label>
                     <input 
                         type="text" 
                         id="username" 
-                        name="username" 
                         class="form-control" 
                         required 
                         autocomplete="username"
                         autocapitalize="off"
-                        placeholder="نام کاربری"
+                        autocorrect="off"
+                        spellcheck="false"
+                        placeholder="نام کاربری را وارد کنید"
                     >
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label" for="password">🔒 رمز عبور</label>
+                    <label class="form-label">🔒 رمز عبور</label>
                     <input 
                         type="password" 
                         id="password" 
-                        name="password" 
                         class="form-control" 
                         required
                         autocomplete="current-password"
-                        placeholder="رمز عبور"
+                        placeholder="رمز عبور را وارد کنید"
                     >
                 </div>
                 
-                <div id="error-message" class="alert alert-danger hidden"></div>
+                <div id="error-box" class="alert alert-danger hidden" style="margin-bottom: 20px;"></div>
                 
-                <button type="submit" class="btn btn-primary btn-lg btn-block">
-                    ورود به سیستم
+                <button type="submit" class="btn btn-primary btn-lg btn-block btn-login">
+                    🚀 ورود به سیستم
                 </button>
             </form>
             
             <div class="login-info">
-                <strong>🔑 اطلاعات پیش‌فرض:</strong>
-                <p>نام کاربری: <code>admin</code></p>
-                <p>رمز عبور: <code>admin123</code></p>
+                <strong>🔑 اطلاعات ورود پیش‌فرض:</strong>
+                <p style="margin: 8px 0 4px;">نام کاربری: <code>admin</code></p>
+                <p style="margin: 0;">رمز عبور: <code>admin123</code></p>
             </div>
         </div>
     </div>
@@ -68,38 +83,74 @@
             window.location.href = '/dashboard';
         }
         
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        const form = document.getElementById('login-form');
+        const errorBox = document.getElementById('error-box');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('error-message');
-            const submitBtn = e.target.querySelector('button[type="submit"]');
             
-            errorDiv.classList.add('hidden');
+            if (!username || !password) {
+                showError('لطفاً نام کاربری و رمز عبور را وارد کنید');
+                return;
+            }
+            
+            errorBox.classList.add('hidden');
             submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ در حال ورود...';
+            submitBtn.innerHTML = '⏳ در حال ورود...';
             
             try {
                 await AuthManager.login(username, password);
-                window.location.href = '/dashboard';
+                
+                // Success animation
+                submitBtn.innerHTML = '✅ خوش آمدید!';
+                submitBtn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+                
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 500);
+                
             } catch (error) {
                 console.error('Login error:', error);
                 
-                let errorMessage = 'خطا در ورود به سیستم';
-                
+                let msg = 'خطا در ورود به سیستم';
                 if (error.message) {
-                    errorMessage = error.message;
+                    msg = error.message;
                 } else if (error instanceof TypeError) {
-                    errorMessage = 'خطا در اتصال به سرور';
+                    msg = 'خطا در اتصال به سرور. لطفاً مجدداً تلاش کنید.';
                 }
                 
-                errorDiv.textContent = errorMessage;
-                errorDiv.classList.remove('hidden');
+                showError(msg);
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'ورود به سیستم';
+                submitBtn.innerHTML = '🚀 ورود به سیستم';
+                
+                // Shake animation
+                form.style.animation = 'none';
+                form.offsetHeight; // Trigger reflow
+                form.style.animation = 'shake 0.5s ease';
             }
         });
+        
+        function showError(msg) {
+            errorBox.textContent = '❌ ' + msg;
+            errorBox.classList.remove('hidden');
+        }
+        
+        // Shake animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                20% { transform: translateX(-10px); }
+                40% { transform: translateX(10px); }
+                60% { transform: translateX(-10px); }
+                80% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
