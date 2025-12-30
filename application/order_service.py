@@ -22,7 +22,14 @@ class OrderService:
         if self.current_table is None:
             return None
         if self.current_table not in self.orders:
-            self.orders[self.current_table] = Order(table_number=self.current_table)
+            # Check if there's an open order in database for this table
+            db_order = self.repo.get_open_order_by_table(self.current_table)
+            if db_order:
+                # Load existing order from database
+                self.orders[self.current_table] = db_order
+            else:
+                # Create new order
+                self.orders[self.current_table] = Order(table_number=self.current_table)
         return self.orders[self.current_table]
 
     def add_item(self, name: str, price: int, quantity: int = 1):
@@ -91,13 +98,30 @@ class OrderService:
             raise ValueError("هیچ سفارشی انتخاب نشده است")
         try:
             self.current_order.close()
-            order_id = self.repo.save(self.current_order)
+            
+            # Check if order already exists in database (from web)
+            from infrastructure.database.models.order_model import OrderModel
+            order_model = (
+                self.session.query(OrderModel)
+                .filter_by(table_number=self.current_table, status="open")
+                .order_by(OrderModel.created_at.desc())
+                .first()
+            )
+            
+            if order_model:
+                # Update existing order
+                self.repo.update_order(order_model.id, self.current_order)
+                order_id = order_model.id
+            else:
+                # Save as new order
+                order_id = self.repo.save(self.current_order)
+            
             # حذف سفارش بسته شده از حافظه
             if self.current_table in self.orders:
                 del self.orders[self.current_table]
             return order_id
         except Exception as e:
-            raise ValueError(f"خطا در ذخیره سفارش: {e}")
+            raise ValueError(f"خطا در ذخیره سفارش: {str(e)}")
 
     def clear_current_order(self):
         """پاک کردن سفارش فعلی"""
@@ -105,8 +129,16 @@ class OrderService:
             del self.orders[self.current_table]
 
     def set_table(self, table_number: int):
-        """تعیین شماره میز فعلی"""
+        """تعیین شماره میز فعلی و بارگذاری سفارش باز از دیتابیس"""
         self.current_table = table_number
+        
+        # Clear current order from memory to force reload
+        if table_number in self.orders:
+            del self.orders[table_number]
+        
+        # This will trigger current_order property which loads from DB if exists
+        # Accessing current_order will load from DB or create new
+        _ = self.current_order
 
     def get_table_number(self) -> int:
         """دریافت شماره میز فعلی"""
