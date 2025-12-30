@@ -2,15 +2,25 @@
 """
 Server Settings Dialog for managing the web server configuration
 """
+import subprocess
+import io
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QPushButton, QGroupBox, QFormLayout, QSpinBox, QCheckBox,
-    QTextEdit, QMessageBox, QFrame, QWidget, QSizePolicy
+    QTextEdit, QMessageBox, QFrame, QWidget, QSizePolicy, QScrollArea
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QPixmap, QImage
 from web.server import get_server_runner
 from web.config import get_config_manager
+
+# QR Code imports
+try:
+    import qrcode
+    from PIL import Image
+    HAS_QRCODE = True
+except ImportError:
+    HAS_QRCODE = False
 
 
 class ServerSettingsDialog(QDialog):
@@ -150,6 +160,33 @@ class ServerSettingsDialog(QDialog):
         url_layout.addWidget(self.network_url_label)
         
         status_inner.addWidget(url_container)
+        
+        # QR Code container
+        self.qr_container = QWidget()
+        qr_layout = QVBoxLayout(self.qr_container)
+        qr_layout.setContentsMargins(0, 15, 0, 0)
+        qr_layout.setSpacing(10)
+        
+        qr_title = QLabel("📱 اسکن با گوشی:")
+        qr_title.setStyleSheet("font-size: 11pt; font-weight: bold; color: #333;")
+        qr_title.setAlignment(Qt.AlignCenter)
+        qr_layout.addWidget(qr_title)
+        
+        self.qr_label = QLabel()
+        self.qr_label.setAlignment(Qt.AlignCenter)
+        self.qr_label.setStyleSheet("""
+            background-color: white;
+            padding: 10px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        """)
+        self.qr_label.setMinimumSize(200, 200)
+        self.qr_label.setMaximumSize(200, 200)
+        qr_layout.addWidget(self.qr_label, 0, Qt.AlignCenter)
+        
+        self.qr_container.setVisible(False)  # Hidden by default
+        status_inner.addWidget(self.qr_container)
+        
         status_layout.addWidget(status_container)
         
         # Control buttons
@@ -233,6 +270,36 @@ class ServerSettingsDialog(QDialog):
         button_layout.addWidget(self.restart_btn)
         
         status_layout.addLayout(button_layout)
+        
+        # Firewall button
+        firewall_layout = QHBoxLayout()
+        firewall_layout.setContentsMargins(0, 10, 0, 0)
+        
+        self.firewall_btn = QPushButton("🛡️ باز کردن فایروال (برای دسترسی از شبکه)")
+        self.firewall_btn.setMinimumHeight(45)
+        self.firewall_btn.setCursor(Qt.PointingHandCursor)
+        self.firewall_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                padding: 12px 20px;
+                font-size: 11pt;
+                font-weight: bold;
+                border-radius: 8px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+            }
+            QPushButton:pressed {
+                background-color: #117a8b;
+            }
+        """)
+        self.firewall_btn.clicked.connect(self.open_firewall)
+        firewall_layout.addWidget(self.firewall_btn)
+        
+        status_layout.addLayout(firewall_layout)
+        
         status_group.setLayout(status_layout)
         layout.addWidget(status_group)
         
@@ -521,6 +588,9 @@ class ServerSettingsDialog(QDialog):
             self.stop_btn.setText("⏹️ توقف سرور")
             self.restart_btn.setEnabled(True)
             self.restart_btn.setText("🔄 راه‌اندازی مجدد")
+            
+            # Show QR code
+            self.update_qr_code()
         else:
             self.status_label.setText("⏹️ سرور متوقف است")
             self.status_label.setStyleSheet("""
@@ -555,6 +625,9 @@ class ServerSettingsDialog(QDialog):
             self.stop_btn.setText("⏹️ توقف سرور")
             self.restart_btn.setEnabled(False)
             self.restart_btn.setText("🔄 راه‌اندازی مجدد")
+            
+            # Hide QR code
+            self.qr_container.setVisible(False)
     
     def on_server_started(self, host, port):
         """Called when server starts"""
@@ -584,3 +657,111 @@ class ServerSettingsDialog(QDialog):
     def on_status_changed(self, status):
         """Called when server status changes"""
         self.update_server_status()
+    
+    def generate_qr_code(self, url):
+        """Generate QR code for the URL"""
+        if not HAS_QRCODE:
+            return None
+        
+        try:
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=6,
+                border=2,
+            )
+            qr.add_data(url)
+            qr.make(fit=True)
+            
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Convert PIL image to QPixmap
+            buffer = io.BytesIO()
+            img.save(buffer, format='PNG')
+            buffer.seek(0)
+            
+            qimage = QImage()
+            qimage.loadFromData(buffer.getvalue())
+            pixmap = QPixmap.fromImage(qimage)
+            
+            return pixmap.scaled(180, 180, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        except Exception as e:
+            print(f"Error generating QR code: {e}")
+            return None
+    
+    def update_qr_code(self):
+        """Update QR code display"""
+        if not self.server_runner.is_running:
+            self.qr_container.setVisible(False)
+            return
+        
+        urls = self.server_runner.get_access_urls()
+        network_url = urls.get('network', '')
+        
+        if network_url and HAS_QRCODE:
+            pixmap = self.generate_qr_code(network_url)
+            if pixmap:
+                self.qr_label.setPixmap(pixmap)
+                self.qr_container.setVisible(True)
+            else:
+                self.qr_container.setVisible(False)
+        else:
+            self.qr_container.setVisible(False)
+    
+    def open_firewall(self):
+        """Open Windows Firewall for the server port"""
+        port = self.port_input.value()
+        
+        reply = QMessageBox.question(
+            self,
+            "🛡️ باز کردن فایروال",
+            f"آیا می‌خواهید پورت {port} را در فایروال ویندوز باز کنید?\n\n"
+            "این عملیات نیاز به دسترسی Administrator دارد.\n"
+            "پس از تأیید، یک پنجره UAC ظاهر می‌شود.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                # Create firewall rule using netsh (requires admin)
+                rule_name = f"CafeApp_Port_{port}"
+                
+                # PowerShell command to add firewall rule
+                ps_command = f'''
+                    $ruleName = "{rule_name}"
+                    $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+                    if ($existingRule) {{
+                        Remove-NetFirewallRule -DisplayName $ruleName
+                    }}
+                    New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Protocol TCP -LocalPort {port} -Action Allow -Profile Any
+                '''
+                
+                # Run as administrator
+                result = subprocess.run(
+                    ['powershell', '-Command', 
+                     f'Start-Process powershell -Verb RunAs -Wait -ArgumentList \'-Command {ps_command}\''],
+                    capture_output=True,
+                    text=True,
+                    shell=True
+                )
+                
+                QMessageBox.information(
+                    self,
+                    "✅ موفق",
+                    f"قانون فایروال برای پورت {port} ایجاد شد.\n\n"
+                    f"نام قانون: {rule_name}\n\n"
+                    "اکنون باید بتوانید از دستگاه‌های دیگر به سرور دسترسی پیدا کنید."
+                )
+                
+            except Exception as e:
+                # Alternative: Show manual instructions
+                QMessageBox.warning(
+                    self,
+                    "⚠️ خطا",
+                    f"خطا در اجرای خودکار:\n{str(e)}\n\n"
+                    f"دستور دستی:\n"
+                    f"1. Command Prompt را به عنوان Administrator باز کنید\n"
+                    f"2. دستور زیر را اجرا کنید:\n\n"
+                    f"netsh advfirewall firewall add rule name=\"CafeApp\" dir=in action=allow protocol=TCP localport={port}"
+                )
