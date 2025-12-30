@@ -284,6 +284,41 @@ class POSMainWindow(QMainWindow):
         self.setup_timers()
         self.setup_shortcuts()
     
+    def setup_timers(self):
+        """Setup auto-refresh timers"""
+        # Timer for refreshing current order from database (every 3 seconds)
+        self.order_refresh_timer = QTimer()
+        self.order_refresh_timer.timeout.connect(self.refresh_current_order_from_db)
+        self.order_refresh_timer.start(3000)  # 3 seconds
+        
+        # Timer for updating time display (every second)
+        self.time_timer = QTimer()
+        self.time_timer.timeout.connect(self.update_time)
+        self.time_timer.start(1000)
+        
+        # Timer for updating stats (every 10 seconds)
+        self.stats_timer = QTimer()
+        self.stats_timer.timeout.connect(self.update_stats)
+        self.stats_timer.start(10000)
+        
+        # Initial updates
+        self.update_time()
+        self.update_stats()
+    
+    def refresh_current_order_from_db(self):
+        """Refresh current order from database to sync with web orders"""
+        if self.order_service.current_table is None:
+            return
+        
+        try:
+            # Reload order from database
+            self.order_service.set_table(self.order_service.current_table)
+            # Refresh UI
+            self.refresh_cart()
+        except Exception as e:
+            # Silently fail to avoid interrupting user
+            pass
+    
     def get_theme_color(self, key: str) -> str:
         """Get color from current theme"""
         return self.theme_manager.get_color(key)
