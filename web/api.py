@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from web.auth import (
-    Token, UserLogin, UserCreate, UserResponse,
+    Token, UserLogin, UserCreate, UserUpdate, UserResponse,
     authenticate_user, create_access_token, get_current_user, get_current_admin,
     get_password_hash
 )
@@ -582,7 +582,7 @@ async def create_user(
 @app.put("/api/admin/users/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: int,
-    user_data: UserCreate,
+    user_data: UserUpdate,
     current_user: UserModel = Depends(get_current_admin)
 ):
     """Update a user (admin only)"""

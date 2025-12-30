@@ -42,6 +42,13 @@ class UserCreate(BaseModel):
     role: str = "cashier"
 
 
+class UserUpdate(BaseModel):
+    username: str
+    password: Optional[str] = None
+    full_name: str
+    role: str = "cashier"
+
+
 class UserResponse(BaseModel):
     id: int
     username: str
