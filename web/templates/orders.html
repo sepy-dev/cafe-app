@@ -78,7 +78,7 @@
         </div>
     </div>
     
-    <!-- Order Details/Edit Modal -->
+    <!-- Order Details Modal -->
     <div class="modal" id="order-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -86,6 +86,48 @@
                 <span class="modal-close" onclick="closeModal()">✕</span>
             </div>
             <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <!-- Add Item Modal -->
+    <div class="modal" id="add-item-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ افزودن آیتم به سفارش #<span id="add-item-order-id"></span></h2>
+                <span class="modal-close" onclick="closeAddItemModal()">✕</span>
+            </div>
+            <div id="add-item-body">
+                <!-- Category Filter -->
+                <div class="form-group">
+                    <label class="form-label">📂 دسته‌بندی</label>
+                    <select id="add-item-category" class="form-select">
+                        <option value="all">همه</option>
+                    </select>
+                </div>
+                
+                <!-- Products Grid -->
+                <div id="add-item-products" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-height:300px;overflow-y:auto;margin-bottom:16px;">
+                </div>
+                
+                <!-- Custom Item Button -->
+                <button id="add-custom-to-order-btn" class="btn btn-secondary btn-block" style="border:2px dashed #ccc;margin-bottom:16px;">
+                    ✨ افزودن آیتم سفارشی
+                </button>
+                
+                <!-- Custom Item Form (hidden by default) -->
+                <div id="custom-item-form-container" style="display:none;background:#f8f8f8;padding:16px;border-radius:12px;margin-bottom:16px;">
+                    <h4 style="margin:0 0 12px;font-size:0.95rem;">✨ آیتم سفارشی</h4>
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <input type="text" id="add-custom-name" class="form-control" placeholder="نام آیتم" style="min-height:44px;">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <input type="number" id="add-custom-price" class="form-control" placeholder="قیمت" inputmode="numeric" style="min-height:44px;">
+                        <button id="add-custom-confirm-btn" class="btn btn-success">افزودن</button>
+                    </div>
+                </div>
+                
+                <button class="btn btn-secondary btn-block" onclick="closeAddItemModal()">بستن</button>
+            </div>
         </div>
     </div>
     
@@ -125,7 +167,9 @@
         
         // Data
         const ordersManager = new OrdersManager();
+        const productsManager = new ProductsManager();
         let currentOrders = [];
+        let addItemOrderId = null;
         
         function formatPrice(price) {
             return new Intl.NumberFormat('fa-IR').format(price) + ' ت';
@@ -172,7 +216,6 @@
             }
             
             container.innerHTML = orders.map((order, i) => {
-                // Get items summary
                 const itemsList = order.items && order.items.length > 0 
                     ? order.items.map(item => `
                         <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:0.9rem;">
@@ -216,13 +259,16 @@
                         </div>
                     </div>
                     
-                    <!-- Quick Actions -->
+                    <!-- Quick Actions for Open Orders -->
                     ${order.status === 'open' ? `
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed #eee;" onclick="event.stopPropagation();">
-                        <button class="btn btn-primary btn-sm" onclick="editOrder(${order.id})">
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px dashed #eee;" onclick="event.stopPropagation();">
+                        <button class="btn btn-warning btn-sm" onclick="openAddItemModal(${order.id})" style="font-size:0.85rem;">
+                            ➕ آیتم
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="editOrder(${order.id})" style="font-size:0.85rem;">
                             ✏️ ویرایش
                         </button>
-                        <button class="btn btn-success btn-sm" onclick="closeOrderQuick(${order.id})">
+                        <button class="btn btn-success btn-sm" onclick="closeOrderQuick(${order.id})" style="font-size:0.85rem;">
                             ✅ بستن
                         </button>
                     </div>
@@ -294,12 +340,15 @@
                 </div>
                 
                 ${order.status === 'open' ? `
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;">
-                        <button class="btn btn-primary" onclick="editOrder(${order.id})" style="font-size:1rem;">
-                            ✏️ ویرایش سفارش
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px;">
+                        <button class="btn btn-warning" onclick="closeModal();openAddItemModal(${order.id})">
+                            ➕ آیتم
                         </button>
-                        <button class="btn btn-success" onclick="closeOrder(${order.id})" style="font-size:1rem;">
-                            ✅ بستن سفارش
+                        <button class="btn btn-primary" onclick="editOrder(${order.id})">
+                            ✏️ ویرایش
+                        </button>
+                        <button class="btn btn-success" onclick="closeOrder(${order.id})">
+                            ✅ بستن
                         </button>
                     </div>
                 ` : `
@@ -314,9 +363,135 @@
             modal.classList.add('show');
         }
         
+        // ==================== ADD ITEM MODAL ====================
+        const categoryEmojis = {
+            'نوشیدنی گرم': '☕',
+            'نوشیدنی سرد': '🧊',
+            'قهوه': '☕',
+            'چای': '🍵',
+            'دسر': '🍰',
+            'کیک': '🎂',
+            'غذا': '🍔',
+            'ساندویچ': '🥪',
+            'صبحانه': '🍳',
+            'سالاد': '🥗',
+            'آبمیوه': '🍹',
+            'اسموتی': '🥤',
+            'default': '🍽️'
+        };
+        
+        async function openAddItemModal(orderId) {
+            addItemOrderId = orderId;
+            document.getElementById('add-item-order-id').textContent = orderId;
+            document.getElementById('add-item-modal').classList.add('show');
+            document.getElementById('custom-item-form-container').style.display = 'none';
+            
+            // Load products if not loaded
+            if (productsManager.products.length === 0) {
+                await productsManager.loadProducts();
+            }
+            
+            // Populate categories
+            const catSelect = document.getElementById('add-item-category');
+            catSelect.innerHTML = '<option value="all">همه</option>';
+            productsManager.categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = (categoryEmojis[cat] || '📦') + ' ' + cat;
+                catSelect.appendChild(opt);
+            });
+            
+            renderAddItemProducts();
+        }
+        
+        function closeAddItemModal() {
+            document.getElementById('add-item-modal').classList.remove('show');
+            addItemOrderId = null;
+        }
+        
+        document.getElementById('add-item-category').addEventListener('change', renderAddItemProducts);
+        
+        function renderAddItemProducts() {
+            const container = document.getElementById('add-item-products');
+            const category = document.getElementById('add-item-category').value;
+            const products = productsManager.getProductsByCategory(category);
+            
+            container.innerHTML = products.map(p => `
+                <div class="product-card" style="padding:12px;min-height:auto;" onclick="addItemToOrder(${p.id}, '${p.name.replace(/'/g, "\\'")}', ${p.price})">
+                    <div style="font-size:1.5rem;">${categoryEmojis[p.category] || categoryEmojis.default}</div>
+                    <div style="font-size:0.85rem;font-weight:600;margin:4px 0;">${p.name}</div>
+                    <div style="font-size:0.8rem;color:#6F4E37;font-weight:700;">${formatPrice(p.price)}</div>
+                </div>
+            `).join('');
+        }
+        
+        async function addItemToOrder(productId, productName, productPrice) {
+            if (!addItemOrderId) return;
+            
+            try {
+                await ordersManager.addItemToOrder(addItemOrderId, {
+                    product_id: productId,
+                    quantity: 1
+                });
+                
+                showToast('☕ ' + productName + ' اضافه شد');
+                if (navigator.vibrate) navigator.vibrate(50);
+                
+                // Reload orders to show updated data
+                loadOrders();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('❌ خطا در افزودن', 'error');
+            }
+        }
+        
+        // Custom item in add modal
+        document.getElementById('add-custom-to-order-btn').addEventListener('click', () => {
+            const formContainer = document.getElementById('custom-item-form-container');
+            formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+        });
+        
+        document.getElementById('add-custom-confirm-btn').addEventListener('click', async () => {
+            const name = document.getElementById('add-custom-name').value.trim();
+            const price = parseInt(document.getElementById('add-custom-price').value) || 0;
+            
+            if (!name || price <= 0) {
+                showToast('نام و قیمت را وارد کنید', 'error');
+                return;
+            }
+            
+            try {
+                await ordersManager.addItemToOrder(addItemOrderId, {
+                    product_id: null,
+                    product_name: name,
+                    unit_price: price,
+                    quantity: 1
+                });
+                
+                showToast('✨ ' + name + ' اضافه شد');
+                if (navigator.vibrate) navigator.vibrate(50);
+                
+                // Clear form
+                document.getElementById('add-custom-name').value = '';
+                document.getElementById('add-custom-price').value = '';
+                document.getElementById('custom-item-form-container').style.display = 'none';
+                
+                // Reload orders
+                loadOrders();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('❌ خطا در افزودن', 'error');
+            }
+        });
+        
+        document.getElementById('add-item-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'add-item-modal') closeAddItemModal();
+        });
+        
+        // ==================== OTHER FUNCTIONS ====================
         function editOrder(orderId) {
-            // Redirect to new order page with order data
-            sessionStorage.setItem('edit_order_id', orderId);
             window.location.href = '/new-order?edit=' + orderId;
         }
         
@@ -371,6 +546,9 @@
         window.closeOrder = closeOrder;
         window.closeOrderQuick = closeOrderQuick;
         window.editOrder = editOrder;
+        window.openAddItemModal = openAddItemModal;
+        window.closeAddItemModal = closeAddItemModal;
+        window.addItemToOrder = addItemToOrder;
         
         // Load
         loadOrders();

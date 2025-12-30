@@ -575,6 +575,86 @@ async def update_order(
         session.close()
 
 
+@app.post("/api/orders/{order_id}/items")
+async def add_item_to_order(
+    order_id: int,
+    item_data: OrderItemCreate,
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Add a single item to an existing order"""
+    session = SessionLocal()
+    try:
+        order = session.query(OrderModel).filter_by(id=order_id).first()
+        if not order:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="سفارش یافت نشد"
+            )
+        
+        if order.status != "open":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="فقط به سفارشات باز می‌توان آیتم اضافه کرد"
+            )
+        
+        # Get product info or use custom item data
+        if item_data.product_id is not None:
+            product = session.query(ProductModel).filter_by(
+                id=item_data.product_id, 
+                is_active=True
+            ).first()
+            if not product:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="محصول یافت نشد"
+                )
+            name = product.name
+            price = product.price
+        else:
+            # Custom item
+            if not item_data.product_name or item_data.unit_price is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="آیتم سفارشی باید نام و قیمت داشته باشد"
+                )
+            name = item_data.product_name
+            price = item_data.unit_price
+        
+        # Check if item already exists in order
+        existing_item = session.query(OrderItemModel).filter_by(
+            order_id=order.id,
+            product_name=name,
+            unit_price=price
+        ).first()
+        
+        if existing_item:
+            # Update quantity
+            existing_item.quantity += item_data.quantity
+        else:
+            # Add new item
+            new_item = OrderItemModel(
+                order_id=order.id,
+                product_name=name,
+                unit_price=price,
+                quantity=item_data.quantity
+            )
+            session.add(new_item)
+        
+        session.commit()
+        
+        return {"message": f"{name} به سفارش اضافه شد", "quantity": item_data.quantity}
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"خطا در افزودن آیتم: {str(e)}"
+        )
+    finally:
+        session.close()
+
+
 # ============== Dashboard API ==============
 
 @app.get("/api/dashboard/stats", response_model=DashboardStats)

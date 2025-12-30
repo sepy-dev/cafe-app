@@ -332,6 +332,15 @@ class OrdersManager {
         }
     }
     
+    async addItemToOrder(orderId, itemData) {
+        try {
+            return await API.post(`/api/orders/${orderId}/items`, itemData);
+        } catch (error) {
+            console.error('Error adding item to order:', error);
+            throw error;
+        }
+    }
+    
     async updateOrderStatus(orderId, status) {
         try {
             await API.patch(`/api/orders/${orderId}/status`, { status });
