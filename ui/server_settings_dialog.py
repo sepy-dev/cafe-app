@@ -660,33 +660,27 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
                     script_path = f.name
                 
                 try:
-                    # Method 1: Try using subprocess.run with shell=True
-                    # Escape the script path properly for PowerShell
-                    script_path_escaped = script_path.replace('\\', '\\\\')
+                    # Use shell=True with proper command formatting
+                    # This is the most reliable way to trigger UAC
+                    command = f'powershell.exe -Command "Start-Process powershell.exe -Verb RunAs -ArgumentList \'-NoExit\', \'-File\', \'{script_path}\'"'
                     
-                    # Use Start-Process with -File parameter
-                    ps_cmd = [
-                        'powershell.exe',
-                        '-Command',
-                        f'Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoExit", "-File", "{script_path}"'
-                    ]
-                    
-                    # Execute
+                    # Execute with shell=True to properly trigger UAC
                     process = subprocess.Popen(
-                        ps_cmd,
+                        command,
+                        shell=True,
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                        stderr=subprocess.PIPE
                     )
                     
                     # Give it a moment to start
                     import time
-                    time.sleep(0.5)
+                    time.sleep(1)
                     
                     QMessageBox.information(
                         self,
-                        "✅ پنجره Admin باز شد",
+                        "✅ در حال باز کردن پنجره Admin",
                         f"پنجره PowerShell با دسترسی Administrator باید باز شده باشد.\n\n"
+                        f"⚠️ اگر پنجره UAC ظاهر شد، روی 'Yes' یا 'بله' کلیک کنید.\n\n"
                         f"در پنجره PowerShell:\n"
                         f"- اگر پیام 'Firewall rule created successfully!' دیدید، پورت {port} باز شده است.\n"
                         f"- اگر خطا دیدید، دستورات دستی را در پایین ببینید.\n\n"
